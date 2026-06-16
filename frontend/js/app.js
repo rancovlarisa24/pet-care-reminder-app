@@ -13,6 +13,12 @@ const filterByPetBtn = document.getElementById('filterByPetBtn');
 const remindersList = document.getElementById('remindersList');
 const messageBox = document.getElementById('messageBox');
 
+const notificationForm = document.getElementById('notificationForm');
+const loadNotificationsBtn = document.getElementById('loadNotificationsBtn');
+const filterNotifByUserBtn = document.getElementById('filterNotifByUserBtn');
+const notificationsList = document.getElementById('notificationsList');
+const notificationMessageBox = document.getElementById('notificationMessageBox');
+
 const showMessage = (element, message, type = 'success') => {
   element.textContent = message;
   element.className = type;
@@ -261,6 +267,126 @@ const deleteReminder = async (id) => {
   }
 };
 
+const renderNotifications = (notifications) => {
+  notificationsList.innerHTML = '';
+
+  if (!notifications || notifications.length === 0) {
+    notificationsList.innerHTML = '<p>Nu există notificări pentru afișare.</p>';
+    return;
+  }
+
+  notifications.forEach((notif) => {
+    const item = document.createElement('div');
+    item.className = 'notification-item';
+
+    const statusClass = notif.sent ? (notif.read ? 'read' : 'sent') : 'pending';
+    const statusText = notif.sent ? (notif.read ? 'Citit' : 'Trimis') : 'Neexpediat';
+
+    item.innerHTML = `
+      <div class="notification-content">
+        <p class="notification-message">${notif.message}</p>
+        <p class="notification-meta"><strong>User:</strong> ${notif.userId}</p>
+        <p class="notification-meta"><strong>Reminder:</strong> ${notif.reminderId}</p>
+        <p class="notification-meta"><strong>Status:</strong> <span class="status-badge ${statusClass}">${statusText}</span></p>
+        <p class="notification-meta"><strong>Data:</strong> ${formatDate(notif.createdAt)}</p>
+      </div>
+      <div class="notification-actions">
+        ${!notif.sent ? `<button class="mark-sent-btn" data-id="${notif.id}">Marchează trimis</button>` : ''}
+        ${notif.sent && !notif.read ? `<button class="mark-read-btn" data-id="${notif.id}">Marchează citit</button>` : ''}
+        <button class="delete-notif-btn" data-id="${notif.id}">Șterge</button>
+      </div>
+    `;
+    notificationsList.appendChild(item);
+  });
+};
+
+const loadNotifications = async () => {
+  try {
+    clearMessage(notificationMessageBox);
+    const response = await fetchJson(`${API_BASE_URL}/notifications`);
+    renderNotifications(response.data);
+  } catch (error) {
+    showMessage(notificationMessageBox, error.message, 'error');
+  }
+};
+
+const filterNotificationsByUser = async () => {
+  const userId = document.getElementById('filterNotifUserId').value;
+
+  if (!userId) {
+    showMessage(notificationMessageBox, 'Introduceți un User ID pentru filtrare.', 'error');
+    return;
+  }
+
+  try {
+    clearMessage(notificationMessageBox);
+    const response = await fetchJson(`${API_BASE_URL}/notifications/user/${userId}`);
+    renderNotifications(response.data);
+  } catch (error) {
+    showMessage(notificationMessageBox, error.message, 'error');
+  }
+};
+
+const createNotification = async (e) => {
+  e.preventDefault();
+
+  const reminderId = document.getElementById('notifReminderId').value;
+  const userId = document.getElementById('notifUserId').value;
+  const message = document.getElementById('notifMessage').value;
+
+  try {
+    clearMessage(notificationMessageBox);
+    await fetchJson(`${API_BASE_URL}/notifications`, {
+      method: 'POST',
+      body: JSON.stringify({ reminderId, userId, message })
+    });
+    showMessage(notificationMessageBox, 'Notificare creată cu succes.');
+    notificationForm.reset();
+    await loadNotifications();
+  } catch (error) {
+    showMessage(notificationMessageBox, error.message, 'error');
+  }
+};
+
+const markNotificationAsSent = async (id) => {
+  try {
+    clearMessage(notificationMessageBox);
+    await fetchJson(`${API_BASE_URL}/notifications/${id}/sent`, {
+      method: 'PUT'
+    });
+    showMessage(notificationMessageBox, 'Notificare marcată ca trimisă.');
+    await loadNotifications();
+  } catch (error) {
+    showMessage(notificationMessageBox, error.message, 'error');
+  }
+};
+
+const markNotificationAsRead = async (id) => {
+  try {
+    clearMessage(notificationMessageBox);
+    await fetchJson(`${API_BASE_URL}/notifications/${id}/read`, {
+      method: 'PUT'
+    });
+    showMessage(notificationMessageBox, 'Notificare marcată ca citită.');
+    await loadNotifications();
+  } catch (error) {
+    showMessage(notificationMessageBox, error.message, 'error');
+  }
+};
+
+const deleteNotification = async (id) => {
+  try {
+    clearMessage(notificationMessageBox);
+    await fetchJson(`${API_BASE_URL}/notifications/${id}`, {
+      method: 'DELETE'
+    });
+    showMessage(notificationMessageBox, 'Notificare ștearsă cu succes.');
+    await loadNotifications();
+  } catch (error) {
+    showMessage(notificationMessageBox, error.message, 'error');
+  }
+};
+
 petForm.addEventListener('submit', createPet);
 loadPetsBtn.addEventListener('click', loadPets);
 filterPetsByUserBtn.addEventListener('click', filterPetsByUser);
@@ -269,6 +395,10 @@ reminderForm.addEventListener('submit', createReminder);
 loadRemindersBtn.addEventListener('click', loadReminders);
 loadActiveRemindersBtn.addEventListener('click', loadActiveReminders);
 filterByPetBtn.addEventListener('click', filterRemindersByPet);
+
+notificationForm.addEventListener('submit', createNotification);
+loadNotificationsBtn.addEventListener('click', loadNotifications);
+filterNotifByUserBtn.addEventListener('click', filterNotificationsByUser);
 
 petsList.addEventListener('click', async (event) => {
   const petId = event.target.dataset.id;
@@ -295,6 +425,26 @@ remindersList.addEventListener('click', async (event) => {
 
   if (event.target.classList.contains('delete-btn')) {
     await deleteReminder(reminderId);
+  }
+});
+
+notificationsList.addEventListener('click', async (event) => {
+  const notificationId = event.target.dataset.id;
+
+  if (!notificationId) {
+    return;
+  }
+
+  if (event.target.classList.contains('mark-sent-btn')) {
+    await markNotificationAsSent(notificationId);
+  }
+
+  if (event.target.classList.contains('mark-read-btn')) {
+    await markNotificationAsRead(notificationId);
+  }
+
+  if (event.target.classList.contains('delete-notif-btn')) {
+    await deleteNotification(notificationId);
   }
 });
 

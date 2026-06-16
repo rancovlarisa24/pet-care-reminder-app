@@ -98,6 +98,35 @@
       <div id="messageBox"></div>
       <div id="remindersList" class="reminders-list"></div>
     </section>
+
+    <section class="card">
+      <h2>Creare notificare</h2>
+      <form id="notificationForm">
+        <label for="notifReminderId">Reminder ID</label>
+        <input type="text" id="notifReminderId" placeholder="ex: reminder-001" required />
+
+        <label for="notifUserId">User ID</label>
+        <input type="text" id="notifUserId" placeholder="ex: user-001" required />
+
+        <label for="notifMessage">Mesaj</label>
+        <textarea id="notifMessage" placeholder="Mesajul notificării" required></textarea>
+
+        <button type="submit">Creează notificare</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Notificări</h2>
+      <div class="actions">
+        <button id="loadNotificationsBtn">Afișează toate notificările</button>
+      </div>
+      <div class="filter">
+        <input type="text" id="filterNotifUserId" placeholder="Filtrare după User ID" />
+        <button id="filterNotifByUserBtn">Filtrează</button>
+      </div>
+      <div id="notificationMessageBox"></div>
+      <div id="notificationsList" class="notifications-list"></div>
+    </section>
   </main>
 
   <script src="./js/app.js"></script>

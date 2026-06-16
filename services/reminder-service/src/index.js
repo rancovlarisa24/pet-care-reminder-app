@@ -11,6 +11,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "Reminder Service"
+  });
+});
+
 app.get("/", (req, res) => {
   res.json({
     service: "Reminder Service",
@@ -18,7 +25,7 @@ app.get("/", (req, res) => {
   });
 });
 
-app.use("/reminders", reminderRoutes);
+app.use("/api/reminders", reminderRoutes);
 
 const PORT = process.env.PORT || 3003;
 

@@ -19,6 +19,13 @@ services:
         condition: service_healthy
       pet-service:
         condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - petcare-network
 
@@ -73,6 +80,22 @@ services:
     networks:
       - petcare-network
 
+  notification-service:
+    build:
+      context: ./services/notification-service
+    container_name: notification-service
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - petcare-network
+
   nginx:
     image: nginx:stable-alpine
     container_name: nginx
@@ -84,6 +107,7 @@ services:
     depends_on:
       - pet-service
       - reminder-service
+      - notification-service
     networks:
       - petcare-network
 

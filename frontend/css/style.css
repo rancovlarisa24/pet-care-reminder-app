@@ -143,10 +143,100 @@ button:hover {
   background: #c62828;
 }
 
+.notifications-list {
+  display: grid;
+  gap: 12px;
+}
+
+.notification-item {
+  border: 1px solid #dfe6e9;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fafafa;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-message {
+  margin: 0 0 8px;
+  font-weight: 500;
+  color: #222;
+}
+
+.notification-meta {
+  margin: 4px 0;
+  color: #555;
+  font-size: 0.9em;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+
+.status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.sent {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-badge.read {
+  background: #d4edda;
+  color: #155724;
+}
+
+.notification-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 150px;
+}
+
+.notification-actions button {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.9em;
+}
+
+.mark-sent-btn {
+  background: #1565c0;
+}
+
+.mark-read-btn {
+  background: #2e7d32;
+}
+
+.delete-notif-btn {
+  background: #c62828;
+}
+
 @media (max-width: 700px) {
   .filter {
     grid-template-columns: 1fr;
   }
+
+  .notification-item {
+    flex-direction: column;
+  }
+
+  .notification-actions {
+    width: 100%;
+    min-width: unset;
+  }
+}
 
   .reminder-actions {
     flex-direction: column;
