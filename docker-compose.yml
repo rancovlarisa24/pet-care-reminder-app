@@ -1,0 +1,46 @@
+services:
+  reminder-service:
+    build:
+      context: ./services/reminder-service
+    container_name: reminder-service
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      MYSQL_HOST: mysql-reminders
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: reminders_db
+      PET_SERVICE_URL: http://pet-service:3002
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+    depends_on:
+      mysql-reminders:
+        condition: service_healthy
+    networks:
+      - petcare-network
+
+  mysql-reminders:
+    image: mysql:8
+    container_name: mysql-reminders
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: reminders_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_reminders_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - petcare-network
+
+volumes:
+  mysql_reminders_data:
+
+networks:
+  petcare-network:
+    driver: bridge
