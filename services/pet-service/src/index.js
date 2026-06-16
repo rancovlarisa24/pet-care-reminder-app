@@ -18,6 +18,10 @@ app.get('/', (req, res) => {
   res.json({ service: 'Pet Service', status: 'running' });
 });
 
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'Pet Service' });
+});
+
 app.use('/api/pets', petRoutes);
 
 const PORT = process.env.PORT || 3002;

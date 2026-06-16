@@ -9,16 +9,53 @@
 <body>
   <header class="app-header">
     <h1>Pet Care Reminder App</h1>
-    <p>Gestionarea reminderelor pentru animalele de companie</p>
+    <p>Gestionarea reminderelor și animalelor de companie</p>
   </header>
 
   <main class="container">
     <section class="card">
-      <h2>Creare reminder</h2>
+      <h2>Creare animal</h2>
+      <form id="petForm">
+        <label for="petUserId">User ID</label>
+        <input type="number" id="petUserId" placeholder="ex: 1" required />
 
+        <label for="petName">Nume</label>
+        <input type="text" id="petName" placeholder="ex: Luna" required />
+
+        <label for="petType">Tip</label>
+        <input type="text" id="petType" placeholder="ex: dog" required />
+
+        <label for="petBreed">Rasă</label>
+        <input type="text" id="petBreed" placeholder="ex: Labrador" required />
+
+        <label for="petAge">Vârstă</label>
+        <input type="number" id="petAge" placeholder="ex: 3" required />
+
+        <label for="petNotes">Note</label>
+        <textarea id="petNotes" placeholder="Ex: vaccinată"></textarea>
+
+        <button type="submit">Adaugă animal</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Lista animalelor</h2>
+      <div class="actions">
+        <button id="loadPetsBtn">Afișează toate animalele</button>
+      </div>
+      <div class="filter">
+        <input type="number" id="filterPetUserId" placeholder="Filtrare după User ID" />
+        <button id="filterPetsByUserBtn">Filtrează</button>
+      </div>
+      <div id="petMessageBox"></div>
+      <div id="petsList" class="pets-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>Creare reminder</h2>
       <form id="reminderForm">
         <label for="petId">Pet ID</label>
-        <input type="text" id="petId" placeholder="ex: demo-pet-1" required />
+        <input type="text" id="petId" placeholder="ex: 6a318..." required />
 
         <label for="title">Titlu</label>
         <input type="text" id="title" placeholder="ex: Vaccin anual" required />
@@ -45,13 +82,11 @@
     </section>
 
     <section class="card">
-      <h2>Acțiuni</h2>
-
+      <h2>Acțiuni reminder</h2>
       <div class="actions">
         <button id="loadRemindersBtn">Afișează toate reminderele</button>
         <button id="loadActiveRemindersBtn">Afișează remindere active</button>
       </div>
-
       <div class="filter">
         <input type="text" id="filterPetId" placeholder="Filtrare după Pet ID" />
         <button id="filterByPetBtn">Filtrează</button>
