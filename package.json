@@ -1,0 +1,19 @@
+{
+  "name": "pet-care-reminder-app",
+  "version": "1.0.0",
+  "description": "Aplicație microservicii pentru îngrijirea animalelor de companie",
+  "private": true,
+  "workspaces": [
+    "services/user-service",
+    "services/pet-service",
+    "services/reminder-service",
+    "services/notification-service"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "start:user": "npm start --workspace=user-service",
+    "start:pet": "npm start --workspace=pet-service",
+    "start:reminder": "npm start --workspace=reminder-service",
+    "start:notification": "npm start --workspace=notification-service"
+  }
+}
