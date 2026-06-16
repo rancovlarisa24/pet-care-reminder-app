@@ -1,0 +1,124 @@
+services:
+  # ---------- Databases ----------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: petcare
+      POSTGRES_PASSWORD: petcare
+      POSTGRES_DB: users_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - petcare-net
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - petcare-net
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: reminders_db
+      MYSQL_USER: petcare
+      MYSQL_PASSWORD: petcare
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - petcare-net
+
+  # ---------- Microservices ----------
+  user-service:
+    build: ./services/user-service
+    environment:
+      PORT: 3001
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: petcare
+      PGPASSWORD: petcare
+      PGDATABASE: users_db
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    networks:
+      - petcare-net
+
+  pet-service:
+    build: ./services/pet-service
+    environment:
+      PORT: 3002
+      MONGO_URI: mongodb://mongo:27017/pets_db
+    ports:
+      - "3002:3002"
+    depends_on:
+      - mongo
+    networks:
+      - petcare-net
+
+  reminder-service:
+    build: ./services/reminder-service
+    environment:
+      PORT: 3003
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: petcare
+      MYSQL_PASSWORD: petcare
+      MYSQL_DATABASE: reminders_db
+      PET_SERVICE_URL: http://pet-service:3002
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+    ports:
+      - "3003:3003"
+    depends_on:
+      - mysql
+      - pet-service
+      - notification-service
+    networks:
+      - petcare-net
+
+  notification-service:
+    build: ./services/notification-service
+    environment:
+      PORT: 3004
+      SQLITE_FILE: /data/notifications.sqlite
+    ports:
+      - "3004:3004"
+    volumes:
+      - notification_data:/data
+    networks:
+      - petcare-net
+
+  # ---------- Reverse proxy + frontend ----------
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - user-service
+      - pet-service
+      - reminder-service
+      - notification-service
+    networks:
+      - petcare-net
+
+networks:
+  petcare-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongo_data:
+  mysql_data:
+  notification_data:
