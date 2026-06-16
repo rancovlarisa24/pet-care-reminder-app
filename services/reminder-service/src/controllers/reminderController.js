@@ -1,5 +1,8 @@
+// reminderController.js - stratul HTTP al Reminder Service: primește cererile,
+// apelează logica din reminderService și formatează răspunsul ({ message, data }).
 const reminderService = require("../services/reminderService");
 
+// GET /api/reminders - returnează toate memento-urile.
 const getAllReminders = async (req, res) => {
   try {
     const reminders = await reminderService.getAllReminders();
@@ -18,6 +21,7 @@ const getAllReminders = async (req, res) => {
   }
 };
 
+// POST /api/reminders - creează un memento (declanșează și crearea notificării).
 const createReminder = async (req, res) => {
   try {
     const createdReminder = await reminderService.createReminder(req.body);
@@ -36,6 +40,7 @@ const createReminder = async (req, res) => {
   }
 };
 
+// GET /api/reminders/pet/:petId - returnează memento-urile unui animal.
 const getRemindersByPetId = async (req, res) => {
   try {
     const { petId } = req.params;
@@ -56,6 +61,7 @@ const getRemindersByPetId = async (req, res) => {
   }
 };
 
+// GET /api/reminders/active - returnează doar memento-urile active.
 const getActiveReminders = async (req, res) => {
   try {
     const reminders = await reminderService.getActiveReminders();
@@ -74,6 +80,7 @@ const getActiveReminders = async (req, res) => {
   }
 };
 
+// PUT /api/reminders/:id/done - marchează un memento ca realizat.
 const markReminderAsDone = async (req, res) => {
   try {
     const { id } = req.params;
@@ -94,6 +101,7 @@ const markReminderAsDone = async (req, res) => {
   }
 };
 
+// DELETE /api/reminders/:id - șterge un memento.
 const deleteReminder = async (req, res) => {
   try {
     const { id } = req.params;

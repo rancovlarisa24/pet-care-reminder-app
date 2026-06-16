@@ -1,5 +1,8 @@
+// petService.js - logica de business pentru animale: validează datele primite
+// înainte de a le trimite către repository (stratul de acces la MongoDB).
 const petRepository = require('../repositories/petRepository');
 
+// Creează un animal nou după ce verifică că toate câmpurile obligatorii sunt valide.
 const createPet = async (petData) => {
   const { userId, name, type, breed, age } = petData;
 
@@ -31,10 +34,12 @@ const createPet = async (petData) => {
   return pet;
 };
 
+// Returnează toate animalele.
 const getAllPets = async () => {
   return petRepository.findAll();
 };
 
+// Returnează un animal după id; aruncă eroare dacă nu este găsit.
 const getPetById = async (id) => {
   if (!id) {
     throw new Error('id is required');
@@ -49,6 +54,7 @@ const getPetById = async (id) => {
   return pet;
 };
 
+// Returnează animalele unui anumit utilizator (după userId).
 const getPetsByUserId = async (userId) => {
   if (!userId) {
     throw new Error('userId is required');
@@ -57,6 +63,7 @@ const getPetsByUserId = async (userId) => {
   return petRepository.findByUserId(Number(userId));
 };
 
+// Șterge un animal după id; aruncă eroare dacă nu este găsit.
 const deletePet = async (id) => {
   if (!id) {
     throw new Error('id is required');

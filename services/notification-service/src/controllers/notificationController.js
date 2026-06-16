@@ -1,10 +1,13 @@
+// notificationController.js - stratul HTTP al Notification Service: primește
+// cererile, apelează logica din notificationService și formatează răspunsul.
 const notificationService = require('../services');
 
 const notificationController = {
+  // POST /api/notifications - creează o notificare (apelat de Reminder Service).
   createNotification: (req, res) => {
     try {
-      const { reminderId, userId, message } = req.body;
-      const notification = notificationService.createNotification(reminderId, userId, message);
+      const { reminderId, userId, message, channel } = req.body;
+      const notification = notificationService.createNotification(reminderId, userId, message, channel);
       res.status(201).json({
         message: 'Notification created successfully',
         data: notification,
@@ -14,6 +17,7 @@ const notificationController = {
     }
   },
 
+  // GET /api/notifications/:id - returnează o notificare după id (404 dacă nu există).
   getNotification: (req, res) => {
     try {
       const { id } = req.params;
@@ -27,6 +31,7 @@ const notificationController = {
     }
   },
 
+  // GET /api/notifications - returnează toate notificările.
   getAllNotifications: (req, res) => {
     try {
       const notifications = notificationService.getAllNotifications();
@@ -39,6 +44,7 @@ const notificationController = {
     }
   },
 
+  // GET /api/notifications/user/:userId - notificările unui utilizator.
   getNotificationsByUserId: (req, res) => {
     try {
       const { userId } = req.params;
@@ -52,6 +58,7 @@ const notificationController = {
     }
   },
 
+  // GET /api/notifications/reminder/:reminderId - notificările unui memento.
   getNotificationsByReminderId: (req, res) => {
     try {
       const { reminderId } = req.params;
@@ -65,6 +72,7 @@ const notificationController = {
     }
   },
 
+  // PUT /api/notifications/:id/sent - marchează notificarea ca trimisă.
   markNotificationAsSent: (req, res) => {
     try {
       const { id } = req.params;
@@ -78,6 +86,7 @@ const notificationController = {
     }
   },
 
+  // PUT /api/notifications/:id/read - marchează notificarea ca citită.
   markNotificationAsRead: (req, res) => {
     try {
       const { id } = req.params;
@@ -91,6 +100,7 @@ const notificationController = {
     }
   },
 
+  // DELETE /api/notifications/:id - șterge o notificare.
   deleteNotification: (req, res) => {
     try {
       const { id } = req.params;

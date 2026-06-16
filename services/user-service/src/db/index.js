@@ -1,5 +1,10 @@
+// db/index.js - configurarea conexiunii la baza de date PostgreSQL a User Service.
+// Toate datele de conectare vin din variabile de mediu (setate în docker-compose),
+// cu valori implicite pentru rularea locală în afara containerului.
 const { Pool } = require('pg');
 
+// Pool-ul gestionează automat un set de conexiuni reutilizabile către PostgreSQL,
+// pentru a nu deschide o conexiune nouă la fiecare cerere.
 const pool = new Pool({
   host: process.env.PGHOST || 'localhost',
   port: Number(process.env.PGPORT) || 5432,

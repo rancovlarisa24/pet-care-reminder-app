@@ -1,15 +1,18 @@
+// index.js - punctul de pornire al Reminder Service (microserviciul de memento-uri).
+// Configurează Express, montează rutele la /api/reminders și pornește serverul (3003).
+// Acest serviciu comunică prin REST cu Pet Service și Notification Service.
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
-dotenv.config();
+dotenv.config(); // încarcă variabilele de mediu din .env
 
 const reminderRoutes = require("./routes/reminderRoutes");
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+app.use(cors());          // permite cererile din browser către acest API
+app.use(express.json());  // parsează body-ul JSON al cererilor
 
 app.get("/health", (req, res) => {
   res.json({

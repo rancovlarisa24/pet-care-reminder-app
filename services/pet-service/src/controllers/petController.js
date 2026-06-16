@@ -1,5 +1,8 @@
+// petController.js - stratul HTTP al Pet Service: primește cererile, apelează
+// logica din petService și formatează răspunsul ({ message, data }).
 const petService = require('../services/petService');
 
+// POST /api/pets - creează un animal nou (201 la succes, 400 dacă datele sunt invalide).
 const createPet = async (req, res) => {
   try {
     const pet = await petService.createPet(req.body);
@@ -10,6 +13,7 @@ const createPet = async (req, res) => {
   }
 };
 
+// GET /api/pets - returnează lista tuturor animalelor.
 const getAllPets = async (req, res) => {
   try {
     const pets = await petService.getAllPets();
@@ -20,6 +24,7 @@ const getAllPets = async (req, res) => {
   }
 };
 
+// GET /api/pets/:id - returnează un animal după id (404 dacă nu există).
 const getPetById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -31,6 +36,7 @@ const getPetById = async (req, res) => {
   }
 };
 
+// GET /api/pets/user/:userId - returnează toate animalele unui utilizator.
 const getPetsByUserId = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -42,6 +48,7 @@ const getPetsByUserId = async (req, res) => {
   }
 };
 
+// DELETE /api/pets/:id - șterge un animal după id.
 const deletePet = async (req, res) => {
   try {
     const { id } = req.params;
