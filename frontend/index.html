@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pet Care Reminder App</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Pet Care Reminder App</h1>
+    <p>Gestionarea reminderelor pentru animalele de companie</p>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Creare reminder</h2>
+
+      <form id="reminderForm">
+        <label for="petId">Pet ID</label>
+        <input type="text" id="petId" placeholder="ex: demo-pet-1" required />
+
+        <label for="title">Titlu</label>
+        <input type="text" id="title" placeholder="ex: Vaccin anual" required />
+
+        <label for="description">Descriere</label>
+        <textarea id="description" placeholder="Detalii reminder"></textarea>
+
+        <label for="category">Categorie</label>
+        <select id="category">
+          <option value="food">Hrană</option>
+          <option value="bath">Baie</option>
+          <option value="walk">Plimbare</option>
+          <option value="vaccine">Vaccin</option>
+          <option value="medicine">Medicamente</option>
+          <option value="vet">Vizită veterinar</option>
+          <option value="other">Altceva</option>
+        </select>
+
+        <label for="reminderDate">Data reminderului</label>
+        <input type="date" id="reminderDate" required />
+
+        <button type="submit">Creează reminder</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Acțiuni</h2>
+
+      <div class="actions">
+        <button id="loadRemindersBtn">Afișează toate reminderele</button>
+        <button id="loadActiveRemindersBtn">Afișează remindere active</button>
+      </div>
+
+      <div class="filter">
+        <input type="text" id="filterPetId" placeholder="Filtrare după Pet ID" />
+        <button id="filterByPetBtn">Filtrează</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Lista reminderelor</h2>
+      <div id="messageBox"></div>
+      <div id="remindersList" class="reminders-list"></div>
+    </section>
+  </main>
+
+  <script src="./js/app.js"></script>
+</body>
+</html>
