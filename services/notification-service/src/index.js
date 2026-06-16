@@ -1,3 +1,6 @@
+// index.js - punctul de pornire al Notification Service (microserviciul de notificări).
+// Configurează Express, montează rutele la /api/notifications, inițializează
+// baza de date SQLite și pornește serverul (3004).
 const express = require('express');
 const { connectToDatabase } = require('./db');
 const notificationRoutes = require('./routes');

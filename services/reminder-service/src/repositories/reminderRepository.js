@@ -1,5 +1,9 @@
+// reminderRepository.js - stratul de acces la date (interogările SQL către MySQL).
+// Fiecare funcție apelează întâi createRemindersTable() pentru a se asigura că
+// tabelul există înainte de a opera pe el.
 const pool = require("../db/mysql");
 
+// Creează tabelul reminders dacă nu există deja.
 const createRemindersTable = async () => {
   const query = `
     CREATE TABLE IF NOT EXISTS reminders (
@@ -17,6 +21,7 @@ const createRemindersTable = async () => {
   await pool.query(query);
 };
 
+// Returnează toate memento-urile, ordonate după data scadenței.
 const findAll = async () => {
   await createRemindersTable();
 
@@ -27,6 +32,7 @@ const findAll = async () => {
   return rows;
 };
 
+// Inserează un memento nou și returnează rândul creat.
 const create = async (reminderData) => {
   await createRemindersTable();
 
@@ -62,6 +68,7 @@ const create = async (reminderData) => {
   return rows[0];
 };
 
+// Returnează memento-urile asociate unui animal (după pet_id).
 const findByPetId = async (petId) => {
   await createRemindersTable();
 
@@ -73,6 +80,7 @@ const findByPetId = async (petId) => {
   return rows;
 };
 
+// Returnează doar memento-urile cu status 'active'.
 const findActive = async () => {
   await createRemindersTable();
 
@@ -84,6 +92,7 @@ const findActive = async () => {
   return rows;
 };
 
+// Marchează un memento ca realizat (status 'done'); returnează null dacă nu există.
 const markAsDone = async (id) => {
   await createRemindersTable();
 
@@ -104,6 +113,7 @@ const markAsDone = async (id) => {
   return rows[0];
 };
 
+// Șterge un memento după id; returnează rândul șters sau null dacă nu există.
 const remove = async (id) => {
   await createRemindersTable();
 

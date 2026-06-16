@@ -1,3 +1,6 @@
+// index.js - punctul de pornire al Pet Service (microserviciul de animale).
+// Configurează Express, montează rutele la /api/pets, se conectează la MongoDB
+// și pornește serverul pe portul 3002.
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -6,13 +9,13 @@ const dotenv = require('dotenv');
 const petRoutes = require('./routes');
 const { connectToDatabase } = require('./db');
 
-dotenv.config();
+dotenv.config(); // încarcă variabilele din fișierul .env (dacă există)
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
-app.use(morgan('dev'));
+app.use(cors());            // permite cererile din browser către acest API
+app.use(express.json());    // parsează body-ul JSON al cererilor
+app.use(morgan('dev'));     // loghează în consolă fiecare cerere HTTP
 
 app.get('/', (req, res) => {
   res.json({ service: 'Pet Service', status: 'running' });

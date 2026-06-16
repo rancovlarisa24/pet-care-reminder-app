@@ -1,3 +1,5 @@
+// notificationRoutes.js - endpoint-urile REST expuse de Notification Service
+// (montate la /api/notifications).
 const express = require('express');
 const notificationController = require('../controllers');
 

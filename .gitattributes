@@ -1,0 +1,10 @@
+# La conflicte de merge pe aceste fișiere, păstrează automat versiunea noastră
+# (modificările din branch-ul curent). Necesită driverul local "ours":
+#   git config merge.ours.driver true
+package.json merge=ours
+package-lock.json merge=ours
+**/package.json merge=ours
+**/package-lock.json merge=ours
+
+# Scripturile shell trebuie să păstreze terminații LF ca să ruleze pe Linux/EC2
+*.sh text eol=lf

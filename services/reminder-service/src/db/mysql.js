@@ -1,3 +1,5 @@
+// db/mysql.js - configurarea conexiunii la baza de date MySQL a Reminder Service.
+// Folosește un pool de conexiuni (mai eficient decât o conexiune nouă per cerere).
 const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
 
@@ -10,7 +12,7 @@ const pool = mysql.createPool({
   password: process.env.MYSQL_PASSWORD || "",
   database: process.env.MYSQL_DATABASE || "reminders_db",
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 10, // maxim 10 conexiuni simultane în pool
   queueLimit: 0
 });
 

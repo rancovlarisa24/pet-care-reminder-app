@@ -252,6 +252,23 @@ button:hover {
   background: #fafafa;
 }
 
+.user-item {
+  border: 1px solid #dfe6e9;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fafafa;
+  margin-bottom: 10px;
+}
+
+.user-item h3 {
+  margin: 0 0 8px;
+}
+
+.user-meta {
+  margin: 4px 0;
+  color: #555;
+}
+
 .pet-item h3 {
   margin: 0 0 8px;
 }

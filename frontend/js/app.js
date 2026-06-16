@@ -1,11 +1,22 @@
+// app.js - logica frontend-ului. Toate cererile trec prin Nginx la /api/...,
+// care le redirecționează către microserviciul potrivit. Codul este împărțit pe
+// cele 4 zone: utilizatori, animale, memento-uri (reminders) și notificări.
 const API_BASE_URL = '/api';
 
+// --- Referințe către elementele HTML pentru zona Utilizatori ---
+const userForm = document.getElementById('userForm');
+const loadUsersBtn = document.getElementById('loadUsersBtn');
+const usersList = document.getElementById('usersList');
+const userMessageBox = document.getElementById('userMessageBox');
+
+// --- Referințe HTML pentru zona Animale ---
 const petForm = document.getElementById('petForm');
 const loadPetsBtn = document.getElementById('loadPetsBtn');
 const filterPetsByUserBtn = document.getElementById('filterPetsByUserBtn');
 const petsList = document.getElementById('petsList');
 const petMessageBox = document.getElementById('petMessageBox');
 
+// --- Referințe HTML pentru zona Memento-uri (Reminders) ---
 const reminderForm = document.getElementById('reminderForm');
 const loadRemindersBtn = document.getElementById('loadRemindersBtn');
 const loadActiveRemindersBtn = document.getElementById('loadActiveRemindersBtn');
@@ -13,22 +24,26 @@ const filterByPetBtn = document.getElementById('filterByPetBtn');
 const remindersList = document.getElementById('remindersList');
 const messageBox = document.getElementById('messageBox');
 
+// --- Referințe HTML pentru zona Notificări ---
 const notificationForm = document.getElementById('notificationForm');
 const loadNotificationsBtn = document.getElementById('loadNotificationsBtn');
 const filterNotifByUserBtn = document.getElementById('filterNotifByUserBtn');
 const notificationsList = document.getElementById('notificationsList');
 const notificationMessageBox = document.getElementById('notificationMessageBox');
 
+// Afișează un mesaj (succes/eroare) într-o casetă din pagină.
 const showMessage = (element, message, type = 'success') => {
   element.textContent = message;
   element.className = type;
 };
 
+// Golește caseta de mesaj.
 const clearMessage = (element) => {
   element.textContent = '';
   element.className = '';
 };
 
+// Formatează o dată în format românesc (sau '-' dacă lipsește).
 const formatDate = (dateValue) => {
   if (!dateValue) {
     return '-';
@@ -37,6 +52,7 @@ const formatDate = (dateValue) => {
   return new Date(dateValue).toLocaleDateString('ro-RO');
 };
 
+// Construiește și afișează în pagină lista de animale.
 const renderPets = (pets) => {
   petsList.innerHTML = '';
 
@@ -65,6 +81,7 @@ const renderPets = (pets) => {
   });
 };
 
+// Construiește și afișează în pagină lista de memento-uri.
 const renderReminders = (reminders) => {
   remindersList.innerHTML = '';
 
@@ -94,6 +111,7 @@ const renderReminders = (reminders) => {
   });
 };
 
+// Helper generic: face un fetch, parsează JSON-ul și aruncă eroare dacă răspunsul nu e OK.
 const fetchJson = async (url, options) => {
   const response = await fetch(url, options);
   const result = await response.json();
@@ -105,6 +123,66 @@ const fetchJson = async (url, options) => {
   return result;
 };
 
+// Construiește și afișează lista de utilizatori.
+// Atenție: User Service returnează un array direct (nu învelit în { data }).
+const renderUsers = (users) => {
+  usersList.innerHTML = '';
+
+  if (!users || users.length === 0) {
+    usersList.innerHTML = '<p>Nu există utilizatori pentru afișare.</p>';
+    return;
+  }
+
+  users.forEach((user) => {
+    const item = document.createElement('div');
+    item.className = 'user-item';
+    item.innerHTML = `
+      <h3>${user.name}</h3>
+      <p class="user-meta"><strong>ID:</strong> ${user.id}</p>
+      <p class="user-meta"><strong>Email:</strong> ${user.email}</p>
+      <p class="user-meta"><strong>Creat:</strong> ${formatDate(user.created_at)}</p>
+    `;
+    usersList.appendChild(item);
+  });
+};
+
+// Încarcă utilizatorii din API și îi afișează.
+const loadUsers = async () => {
+  try {
+    clearMessage(userMessageBox);
+    const users = await fetchJson(`${API_BASE_URL}/users`);
+    renderUsers(users);
+    showMessage(userMessageBox, 'Utilizatorii au fost încărcați.');
+  } catch (error) {
+    showMessage(userMessageBox, 'Nu s-au putut încărca utilizatorii.', 'error');
+  }
+};
+
+// Trimite formularul de creare utilizator către API (POST /api/users).
+const createUser = async (event) => {
+  event.preventDefault();
+
+  const payload = {
+    name: document.getElementById('userName').value.trim(),
+    email: document.getElementById('userEmail').value.trim()
+  };
+
+  try {
+    clearMessage(userMessageBox);
+    await fetchJson(`${API_BASE_URL}/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    userForm.reset();
+    showMessage(userMessageBox, 'Utilizatorul a fost creat cu succes.');
+    await loadUsers();
+  } catch (error) {
+    showMessage(userMessageBox, error.message, 'error');
+  }
+};
+
+// Încarcă toate animalele și le afișează.
 const loadPets = async () => {
   try {
     clearMessage(petMessageBox);
@@ -116,6 +194,7 @@ const loadPets = async () => {
   }
 };
 
+// Filtrează animalele după User ID (GET /api/pets/user/:id).
 const filterPetsByUser = async () => {
   const userId = document.getElementById('filterPetUserId').value.trim();
 
@@ -134,6 +213,7 @@ const filterPetsByUser = async () => {
   }
 };
 
+// Trimite formularul de creare animal către API (POST /api/pets).
 const createPet = async (event) => {
   event.preventDefault();
 
@@ -161,6 +241,7 @@ const createPet = async (event) => {
   }
 };
 
+// Șterge un animal după id (DELETE /api/pets/:id).
 const deletePet = async (id) => {
   try {
     clearMessage(petMessageBox);
@@ -174,6 +255,7 @@ const deletePet = async (id) => {
   }
 };
 
+// Încarcă toate memento-urile.
 const loadReminders = async () => {
   try {
     clearMessage(messageBox);
@@ -185,6 +267,7 @@ const loadReminders = async () => {
   }
 };
 
+// Încarcă doar memento-urile active (GET /api/reminders/active).
 const loadActiveReminders = async () => {
   try {
     clearMessage(messageBox);
@@ -196,6 +279,7 @@ const loadActiveReminders = async () => {
   }
 };
 
+// Filtrează memento-urile după Pet ID (GET /api/reminders/pet/:id).
 const filterRemindersByPet = async () => {
   const petId = document.getElementById('filterPetId').value.trim();
 
@@ -214,6 +298,8 @@ const filterRemindersByPet = async () => {
   }
 };
 
+// Trimite formularul de creare memento către API (POST /api/reminders).
+// La creare, Reminder Service generează automat și o notificare pentru owner.
 const createReminder = async (event) => {
   event.preventDefault();
 
@@ -241,6 +327,7 @@ const createReminder = async (event) => {
   }
 };
 
+// Marchează un memento ca realizat (PUT /api/reminders/:id/done).
 const markReminderAsDone = async (id) => {
   try {
     clearMessage(messageBox);
@@ -254,6 +341,7 @@ const markReminderAsDone = async (id) => {
   }
 };
 
+// Șterge un memento (DELETE /api/reminders/:id).
 const deleteReminder = async (id) => {
   try {
     clearMessage(messageBox);
@@ -267,6 +355,7 @@ const deleteReminder = async (id) => {
   }
 };
 
+// Construiește și afișează lista de notificări, cu badge de status (neexpediat/trimis/citit).
 const renderNotifications = (notifications) => {
   notificationsList.innerHTML = '';
 
@@ -279,20 +368,25 @@ const renderNotifications = (notifications) => {
     const item = document.createElement('div');
     item.className = 'notification-item';
 
-    const statusClass = notif.sent ? (notif.read ? 'read' : 'sent') : 'pending';
-    const statusText = notif.sent ? (notif.read ? 'Citit' : 'Trimis') : 'Neexpediat';
+    // Statusul notificării vine din câmpul `status` (pending/sent/read).
+    const status = notif.status || 'pending';
+    const statusMap = { pending: 'Neexpediat', sent: 'Trimis', read: 'Citit' };
+    const statusText = statusMap[status] || status;
+    const userId = notif.user_id ?? notif.userId;
+    const reminderId = notif.reminder_id ?? notif.reminderId;
+    const createdAt = notif.created_at ?? notif.createdAt;
 
     item.innerHTML = `
       <div class="notification-content">
         <p class="notification-message">${notif.message}</p>
-        <p class="notification-meta"><strong>User:</strong> ${notif.userId}</p>
-        <p class="notification-meta"><strong>Reminder:</strong> ${notif.reminderId}</p>
-        <p class="notification-meta"><strong>Status:</strong> <span class="status-badge ${statusClass}">${statusText}</span></p>
-        <p class="notification-meta"><strong>Data:</strong> ${formatDate(notif.createdAt)}</p>
+        <p class="notification-meta"><strong>User:</strong> ${userId}</p>
+        <p class="notification-meta"><strong>Reminder:</strong> ${reminderId}</p>
+        <p class="notification-meta"><strong>Status:</strong> <span class="status-badge ${status}">${statusText}</span></p>
+        <p class="notification-meta"><strong>Data:</strong> ${formatDate(createdAt)}</p>
       </div>
       <div class="notification-actions">
-        ${!notif.sent ? `<button class="mark-sent-btn" data-id="${notif.id}">Marchează trimis</button>` : ''}
-        ${notif.sent && !notif.read ? `<button class="mark-read-btn" data-id="${notif.id}">Marchează citit</button>` : ''}
+        ${status === 'pending' ? `<button class="mark-sent-btn" data-id="${notif.id}">Marchează trimis</button>` : ''}
+        ${status === 'sent' ? `<button class="mark-read-btn" data-id="${notif.id}">Marchează citit</button>` : ''}
         <button class="delete-notif-btn" data-id="${notif.id}">Șterge</button>
       </div>
     `;
@@ -300,6 +394,7 @@ const renderNotifications = (notifications) => {
   });
 };
 
+// Încarcă toate notificările.
 const loadNotifications = async () => {
   try {
     clearMessage(notificationMessageBox);
@@ -310,6 +405,7 @@ const loadNotifications = async () => {
   }
 };
 
+// Filtrează notificările după User ID (GET /api/notifications/user/:id).
 const filterNotificationsByUser = async () => {
   const userId = document.getElementById('filterNotifUserId').value;
 
@@ -327,6 +423,7 @@ const filterNotificationsByUser = async () => {
   }
 };
 
+// Creează manual o notificare din formular (POST /api/notifications).
 const createNotification = async (e) => {
   e.preventDefault();
 
@@ -348,6 +445,7 @@ const createNotification = async (e) => {
   }
 };
 
+// Marchează o notificare ca trimisă (PUT /api/notifications/:id/sent).
 const markNotificationAsSent = async (id) => {
   try {
     clearMessage(notificationMessageBox);
@@ -361,6 +459,7 @@ const markNotificationAsSent = async (id) => {
   }
 };
 
+// Marchează o notificare ca citită (PUT /api/notifications/:id/read).
 const markNotificationAsRead = async (id) => {
   try {
     clearMessage(notificationMessageBox);
@@ -374,6 +473,7 @@ const markNotificationAsRead = async (id) => {
   }
 };
 
+// Șterge o notificare (DELETE /api/notifications/:id).
 const deleteNotification = async (id) => {
   try {
     clearMessage(notificationMessageBox);
@@ -387,9 +487,13 @@ const deleteNotification = async (id) => {
   }
 };
 
+// --- Conectarea formularelor și butoanelor la funcțiile de mai sus (event listeners) ---
 petForm.addEventListener('submit', createPet);
 loadPetsBtn.addEventListener('click', loadPets);
 filterPetsByUserBtn.addEventListener('click', filterPetsByUser);
+
+userForm.addEventListener('submit', createUser);
+loadUsersBtn.addEventListener('click', loadUsers);
 
 reminderForm.addEventListener('submit', createReminder);
 loadRemindersBtn.addEventListener('click', loadReminders);
@@ -400,6 +504,7 @@ notificationForm.addEventListener('submit', createNotification);
 loadNotificationsBtn.addEventListener('click', loadNotifications);
 filterNotifByUserBtn.addEventListener('click', filterNotificationsByUser);
 
+// Click în lista de animale: detectează butonul de ștergere (event delegation).
 petsList.addEventListener('click', async (event) => {
   const petId = event.target.dataset.id;
 
@@ -412,6 +517,7 @@ petsList.addEventListener('click', async (event) => {
   }
 });
 
+// Click în lista de memento-uri: butoane de "done" sau "șterge".
 remindersList.addEventListener('click', async (event) => {
   const reminderId = event.target.dataset.id;
 
@@ -428,6 +534,7 @@ remindersList.addEventListener('click', async (event) => {
   }
 });
 
+// Click în lista de notificări: butoane de marcare trimis/citit sau ștergere.
 notificationsList.addEventListener('click', async (event) => {
   const notificationId = event.target.dataset.id;
 
@@ -448,5 +555,7 @@ notificationsList.addEventListener('click', async (event) => {
   }
 });
 
+// --- La încărcarea paginii, aducem datele inițiale din toate serviciile ---
+loadUsers();
 loadPets();
 loadReminders();
