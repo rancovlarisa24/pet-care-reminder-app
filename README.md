@@ -1,11 +1,12 @@
 # Pet Care Reminder App
 
-Aplicație web bazată pe **microservicii** pentru gestionarea activităților de îngrijire a animalelor de companie. Utilizatorii pot crea conturi, adăuga animale, crea remindere (hrană, baie, plimbare, vaccin, medicamente, vizite veterinare) și vizualiza notificările generate pentru activitățile programate.
+Aplicație web bazată pe **microservicii** pentru gestionarea activităților de îngrijire a animalelor de companie. Utilizatorii își creează un cont (autentificare cu **JWT**), adaugă animale, creează remindere (hrană, baie, plimbare, vaccin, medicamente, vizite veterinare) și primesc automat **notificări temporizate** pe măsură ce data unui reminder se apropie, ajunge la zi sau este depășită. Fiecare utilizator vede exclusiv propriile date.
 
 ## Cuprins
 
 - [Echipă](#echipă)
 - [Arhitectură](#arhitectură)
+- [Autentificare și securitate](#autentificare-și-securitate)
 - [Fluxul aplicației](#fluxul-aplicației)
 - [Structura proiectului](#structura-proiectului)
 - [Cerințe](#cerințe)
@@ -31,10 +32,12 @@ Aplicația este compusă din patru microservicii independente, fiecare cu propri
 
 | Serviciu | Port | Bază de date | Rută Nginx |
 |----------|------|--------------|------------|
-| `user-service` | 3001 | PostgreSQL | `/api/users` |
+| `user-service` | 3001 | PostgreSQL | `/api/auth` |
 | `pet-service` | 3002 | MongoDB | `/api/pets` |
 | `reminder-service` | 3003 | MySQL | `/api/reminders` |
 | `notification-service` | 3004 | SQLite | `/api/notifications` |
+
+`reminder-service` rulează în plus un **scheduler intern** care verifică periodic reminderele și cere `notification-service` să genereze notificări temporizate (când un reminder se apropie, este astăzi sau a rămas în urmă).
 
 ```mermaid
 flowchart LR
@@ -44,21 +47,32 @@ flowchart LR
     NGINX --> RS[Reminder Service<br/>MySQL]
     NGINX --> NS[Notification Service<br/>SQLite]
     RS -->|verifică animalul| PS
-    RS -->|generează notificare| NS
+    RS -->|scheduler: notificări temporizate| NS
 ```
+
+## Autentificare și securitate
+
+Accesul la date este protejat printr-un sistem de autentificare cu **JSON Web Tokens (JWT)**:
+
+- La înregistrare/login, `user-service` emite un token JWT semnat. Parolele sunt stocate hashuite cu **bcrypt**, niciodată în clar.
+- Frontend-ul trimite token-ul în antetul `Authorization: Bearer <token>` la fiecare cerere către `/api/pets`, `/api/reminders` și `/api/notifications`.
+- Fiecare serviciu validează token-ul și extrage `userId` **din token**, nu din corpul cererii. Astfel un utilizator nu poate accesa sau modifica datele altuia (izolare per-utilizator).
+- Comunicarea internă serviciu-la-serviciu (ex. scheduler-ul din `reminder-service` care creează notificări, sau verificarea proprietarului unui animal) folosește un antet secret `X-Internal-Key`, separat de token-ul utilizatorului.
 
 ## Fluxul aplicației
 
 Fluxul principal de utilizare leagă cele patru servicii într-un singur scenariu:
 
-1. Utilizatorul își creează un cont în **User Service** (`POST /api/users`).
-2. Adaugă un animal în **Pet Service** (`POST /api/pets`), asociat prin `userId`.
-3. Creează un reminder pentru animal în **Reminder Service** (`POST /api/reminders`).
-4. La crearea reminderului, Reminder Service:
-   - verifică prin REST că animalul există (apel către Pet Service);
-   - află cine deține animalul (`userId`-ul proprietarului, tot de la Pet Service);
-   - cere **Notification Service** să genereze o notificare pentru acel utilizator.
-5. Utilizatorul vizualizează reminderele și notificările primite, legate corect de contul său.
+1. Utilizatorul își creează un cont și se autentifică în **User Service** (`POST /api/auth/register` / `POST /api/auth/login`) și primește un **token JWT**.
+2. Adaugă un animal în **Pet Service** (`POST /api/pets`). Proprietarul (`userId`) este preluat din token, nu din corpul cererii.
+3. Creează un reminder pentru animal în **Reminder Service** (`POST /api/reminders`). La creare, Reminder Service verifică prin REST că animalul există și aparține utilizatorului (apel către Pet Service). Reminderul se salvează — fără a genera încă vreo notificare.
+4. **Scheduler-ul** din Reminder Service rulează periodic și, pentru fiecare reminder activ, decide dacă trebuie anunțat utilizatorul:
+   - ⏳ **se apropie** — cu câteva zile înainte de dată;
+   - 📅 **astăzi** — în ziua reminderului;
+   - ⚠️ **restant** — după ce data a trecut.
+
+   Pentru fiecare etapă, scheduler-ul cere **Notification Service** să creeze o notificare (cu deduplicare, ca fiecare etapă să fie anunțată o singură dată).
+5. Utilizatorul vede în pagina **Notificări** alertele primite; lista se actualizează automat. Le poate marca drept citite sau le poate șterge.
 
 ```mermaid
 sequenceDiagram
@@ -68,16 +82,20 @@ sequenceDiagram
     participant RS as Reminder Service
     participant NS as Notification Service
 
-    U->>US: POST /api/users
-    U->>PS: POST /api/pets (userId)
-    U->>RS: POST /api/reminders (petId)
-    RS->>PS: GET /api/pets/:id (verificare + owner)
-    PS-->>RS: datele animalului (userId)
-    RS->>NS: POST /api/notifications (userId owner)
-    U->>NS: GET /api/notifications/user/:userId
+    U->>US: POST /api/auth/register | /login
+    US-->>U: token JWT
+    U->>PS: POST /api/pets (Bearer token)
+    U->>RS: POST /api/reminders (Bearer token, petId)
+    RS->>PS: GET /api/pets/:id (X-Internal-Key, verificare owner)
+    PS-->>RS: datele animalului
+    Note over RS: Scheduler periodic
+    RS->>NS: POST /api/notifications (X-Internal-Key, tip: upcoming/due/overdue)
+    U->>NS: GET /api/notifications (Bearer token)
 ```
 
-Punctul cheie: notificarea ajunge la utilizatorul corect deoarece Reminder Service obține `userId`-ul proprietarului de la Pet Service, în loc să folosească o valoare fixă.
+Puncte cheie:
+- **Izolarea datelor**: fiecare serviciu extrage `userId` din token, deci notificările și datele ajung doar la utilizatorul corect.
+- **Notificări temporizate**: alertele nu apar la crearea reminderului, ci când data se apropie/ajunge/trece — generate de scheduler, nu manual.
 
 ## Structura proiectului
 
@@ -92,13 +110,15 @@ pet-care-reminder-app/
 │   ├── css/
 │   │   └── style.css
 │   └── js/
-│       └── app.js
+│       ├── nav.js              # navigarea între secțiuni
+│       ├── auth.js             # autentificare (login/register) + gestionarea token-ului
+│       └── app.js              # logica pentru animale, remindere, notificări
 ├── nginx/
 │   └── default.conf            # reverse proxy + servire frontend
 └── services/
-    ├── user-service/           # Node.js + Express + PostgreSQL
+    ├── user-service/           # Node.js + Express + PostgreSQL (autentificare JWT)
     ├── pet-service/            # Node.js + Express + MongoDB
-    ├── reminder-service/       # Node.js + Express + MySQL
+    ├── reminder-service/       # Node.js + Express + MySQL (+ scheduler notificări)
     └── notification-service/   # Node.js + Express + SQLite
 ```
 
@@ -165,57 +185,60 @@ Fiecare serviciu are un fișier `.env.example` cu variabilele necesare. În Dock
 
 | Serviciu | Variabile |
 |----------|-----------|
-| `user-service` | `PORT=3001`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` |
-| `pet-service` | `PORT=3002`, `MONGO_URI` |
-| `reminder-service` | `PORT=3003`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, `PET_SERVICE_URL`, `NOTIFICATION_SERVICE_URL` |
-| `notification-service` | `PORT=3004`, `SQLITE_FILE` |
+| `user-service` | `PORT=3001`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `JWT_SECRET`, `JWT_EXPIRES_IN` |
+| `pet-service` | `PORT=3002`, `MONGO_URI`, `JWT_SECRET`, `INTERNAL_API_KEY` |
+| `reminder-service` | `PORT=3003`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, `PET_SERVICE_URL`, `NOTIFICATION_SERVICE_URL`, `JWT_SECRET`, `INTERNAL_API_KEY`, `SCHEDULER_INTERVAL_MS` |
+| `notification-service` | `PORT=3004`, `SQLITE_FILE`, `JWT_SECRET`, `INTERNAL_API_KEY` |
 
-`PET_SERVICE_URL` și `NOTIFICATION_SERVICE_URL` permit Reminder Service să comunice prin REST cu celelalte servicii (folosind numele containerelor din rețeaua Docker).
+`PET_SERVICE_URL` și `NOTIFICATION_SERVICE_URL` permit Reminder Service să comunice prin REST cu celelalte servicii (folosind numele containerelor din rețeaua Docker). `JWT_SECRET` trebuie să fie **identic** în toate serviciile (User Service semnează token-ul, celelalte îl validează). `INTERNAL_API_KEY` este cheia comună folosită pentru apelurile interne serviciu-la-serviciu. `SCHEDULER_INTERVAL_MS` controlează cât de des verifică scheduler-ul reminderele (implicit 60000 ms).
 
 ## API
 
-Toate serviciile sunt expuse prin Nginx sub prefixul `/api`. Intern, fiecare serviciu își montează rutele la `/api/<resursă>`.
+Toate serviciile sunt expuse prin Nginx sub prefixul `/api`. Cu excepția rutelor de autentificare, toate cererile necesită antetul `Authorization: Bearer <token>`. `userId` este preluat mereu din token.
 
-### User Service — `/api/users`
-
-| Metodă | Rută | Descriere |
-|--------|------|-----------|
-| `POST` | `/api/users` | Creează un utilizator (`{ name, email }`) |
-| `GET` | `/api/users` | Listează utilizatorii |
-| `GET` | `/api/users/{id}` | Obține un utilizator după ID |
-
-### Pet Service — `/api/pets`
+### User Service — `/api/auth`
 
 | Metodă | Rută | Descriere |
 |--------|------|-----------|
-| `POST` | `/api/pets` | Adaugă un animal (`{ userId, name, type, breed, age, notes }`) |
-| `GET` | `/api/pets` | Listează animalele |
-| `GET` | `/api/pets/{id}` | Obține un animal după ID |
-| `GET` | `/api/pets/user/{userId}` | Animalele unui utilizator |
-| `DELETE` | `/api/pets/{id}` | Șterge un animal |
+| `POST` | `/api/auth/register` | Înregistrare cont nou (`{ name, email, password }`) → utilizator + token JWT |
+| `POST` | `/api/auth/login` | Autentificare (`{ email, password }`) → utilizator + token JWT |
+| `GET` | `/api/auth/me` | Datele utilizatorului curent (necesită token) |
 
-### Reminder Service — `/api/reminders`
+Parolele sunt stocate hashuite cu bcrypt. Un email deja folosit este respins (409).
+
+### Pet Service — `/api/pets` _(necesită token)_
 
 | Metodă | Rută | Descriere |
 |--------|------|-----------|
-| `POST` | `/api/reminders` | Creează un reminder (`{ petId, title, reminderDate, ... }`) |
-| `GET` | `/api/reminders` | Listează reminderele |
+| `POST` | `/api/pets` | Adaugă un animal (`{ name, type, breed, age, notes }`) — proprietarul = userul logat |
+| `GET` | `/api/pets` | Animalele utilizatorului logat |
+| `GET` | `/api/pets/{id}` | Un animal (proprietarul sau un serviciu intern prin `X-Internal-Key`) |
+| `DELETE` | `/api/pets/{id}` | Șterge un animal (doar al utilizatorului logat) |
+
+### Reminder Service — `/api/reminders` _(necesită token)_
+
+| Metodă | Rută | Descriere |
+|--------|------|-----------|
+| `POST` | `/api/reminders` | Creează un reminder (`{ petId, title, reminderDate, description?, category? }`) |
+| `GET` | `/api/reminders` | Reminderele utilizatorului logat |
 | `GET` | `/api/reminders/active` | Reminderele active |
 | `GET` | `/api/reminders/pet/{petId}` | Reminderele unui animal |
 | `PUT` | `/api/reminders/{id}/done` | Marchează reminderul ca realizat |
 | `DELETE` | `/api/reminders/{id}` | Șterge un reminder |
 
-### Notification Service — `/api/notifications`
+În plus, un scheduler intern rulează periodic și generează notificările temporizate (nu este o rută HTTP).
+
+### Notification Service — `/api/notifications` _(necesită token)_
 
 | Metodă | Rută | Descriere |
 |--------|------|-----------|
-| `POST` | `/api/notifications` | Creează o notificare (`{ reminderId, userId, message, channel? }`) |
-| `GET` | `/api/notifications` | Listează notificările |
-| `GET` | `/api/notifications/user/{userId}` | Notificările unui utilizator |
-| `GET` | `/api/notifications/reminder/{reminderId}` | Notificările unui reminder |
+| `POST` | `/api/notifications` | **Doar intern** (`X-Internal-Key`): creează o notificare (`{ reminderId, userId, message, type, dedupe? }`) |
+| `GET` | `/api/notifications` | Notificările utilizatorului logat |
 | `PUT` | `/api/notifications/{id}/sent` | Marchează notificarea ca trimisă |
 | `PUT` | `/api/notifications/{id}/read` | Marchează notificarea ca citită |
 | `DELETE` | `/api/notifications/{id}` | Șterge o notificare |
+
+Notificările au un `type` (`upcoming` / `due` / `overdue`) folosit pentru a afișa eticheta de urgență în interfață. Crearea de notificări se face exclusiv de către scheduler-ul intern, nu direct de utilizator.
 
 Fiecare serviciu expune și un endpoint `GET /health` folosit de healthcheck-urile din Docker Compose.
 
@@ -278,7 +301,7 @@ docker compose logs -f     # urmărirea log-urilor în timpul prezentării
 ```
 
 - Frontend: `http://<IP-PUBLIC-EC2>/`
-- API: `http://<IP-PUBLIC-EC2>/api/users` (și `/api/pets`, `/api/reminders`, `/api/notifications`)
+- API: `http://<IP-PUBLIC-EC2>/api/auth/login` (și `/api/pets`, `/api/reminders`, `/api/notifications`)
 
 ### 5. Actualizarea aplicației
 

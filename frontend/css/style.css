@@ -1,50 +1,687 @@
+/* ============================================================
+   Pet Care Reminder App - stiluri frontend
+   Design modern, responsive. Numele claselor si ID-urilor sunt
+   pastrate identic cu cele folosite de app.js (nu modifica logica).
+   ============================================================ */
+
+/* ---- Variabile de tema ---- */
+:root {
+  --bg: #eef2f7;
+  --surface: #ffffff;
+  --surface-alt: #f7f9fc;
+  --text: #1f2933;
+  --text-muted: #62707f;
+  --border: #e1e8f0;
+
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --primary-soft: #eef0fe;
+
+  --success: #16a34a;
+  --info: #2563eb;
+  --danger: #dc2626;
+  --warning: #d97706;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 10px 30px rgba(31, 41, 51, 0.08);
+  --shadow-hover: 0 14px 38px rgba(79, 70, 229, 0.16);
+  --ring: 0 0 0 3px rgba(79, 70, 229, 0.18);
+}
+
 * {
   box-sizing: border-box;
 }
 
+/* Garantam ca elementele cu atributul `hidden` sunt mereu ascunse,
+   chiar daca alte reguli seteaza `display`. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
-  color: #222;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-.app-header {
-  background: #263238;
-  color: white;
-  padding: 24px;
-  text-align: center;
+/* ---- Shell aplicatie: sidebar + zona principala ---- */
+.app {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  min-height: 100vh;
 }
 
-.app-header h1 {
-  margin: 0 0 8px;
+/* ---- Poarta de autentificare: aratam aplicatia DOAR cand userul e logat ---- */
+.app {
+  display: none;
+}
+body.is-authed .app {
+  display: grid;
+}
+body.is-authed .auth-screen {
+  display: none;
 }
 
-.app-header p {
+/* ---- Ecran de autentificare (login / inregistrare) ---- */
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: linear-gradient(135deg, #312e81 0%, #4338ca 55%, #6366f1 100%);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 960px;
+  min-height: 560px;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 30px 80px rgba(20, 16, 80, 0.4);
+  overflow: hidden;
+}
+
+/* Panou stanga: prezentare */
+.auth-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 44px;
+  color: #f3f4ff;
+  background: linear-gradient(160deg, #312e81 0%, #4338ca 60%, #5b54e0 100%);
+}
+
+.auth-hero-title {
+  margin: 28px 0 14px;
+  font-size: 1.85rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.auth-hero-sub {
+  margin: 0 0 28px;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.auth-hero-list {
+  list-style: none;
   margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.container {
-  width: min(1100px, 92%);
-  margin: 24px auto;
-  display: grid;
-  gap: 20px;
+.auth-hero-list li {
+  font-size: 0.96rem;
+  color: rgba(255, 255, 255, 0.92);
 }
 
-.card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+/* Panou dreapta: formulare */
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 44px;
 }
 
-form {
-  display: grid;
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.auth-brand-mobile {
+  display: none;
+}
+
+.auth-brand .brand-logo {
+  font-size: 2rem;
+}
+
+.auth-brand .brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.auth-brand .brand-text strong {
+  font-size: 1.15rem;
+  color: #fff;
+}
+
+.auth-brand .brand-text small {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.auth-head {
+  margin-bottom: 22px;
+}
+
+.auth-head h2 {
+  margin: 0 0 6px;
+  font-size: 1.5rem;
+  color: var(--text);
+}
+
+.auth-head p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.auth-form label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  background: var(--surface-alt);
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+  background: var(--surface);
+}
+
+.auth-form button[type="submit"] {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.28);
+  transition: background 0.15s ease;
+}
+
+.auth-form button[type="submit"]:hover {
+  background: var(--primary-dark);
+}
+
+.auth-switch {
+  margin: 22px 0 0;
+  padding-top: 20px;
+  position: relative;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* Separator cu textul „sau" centrat pe linie, deasupra butonului secundar. */
+.auth-switch::before {
+  content: "sau";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 12px;
+  background: var(--surface);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.auth-switch {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 10px;
 }
 
+.auth-switch-text {
+  margin: 0;
+}
+
+.auth-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 11px 16px;
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-link:hover {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.24);
+  text-decoration: none;
+}
+
+#authMessageBox {
+  margin-top: 16px;
+}
+
+
+/* ---- Sidebar ---- */
+.sidebar {
+  background: linear-gradient(180deg, #312e81 0%, #4338ca 60%, #4f46e5 100%);
+  color: #e8e9ff;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 18px;
+}
+
+.brand-logo {
+  font-size: 1.9rem;
+  background: rgba(255, 255, 255, 0.14);
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.brand-text strong {
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.brand-text small {
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.nav-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  background: transparent;
+  color: #d6d8ff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 0.96rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transform: none;
+}
+
+.nav-link.active {
+  background: #fff;
+  color: var(--primary-dark);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.nav-ico {
+  font-size: 1.15rem;
+  width: 22px;
+  text-align: center;
+}
+
+.sidebar-foot {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-foot p {
+  margin: 0;
+  font-size: 0.76rem;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+/* ---- Utilizatorul logat in sidebar ---- */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sidebar-user .avatar {
+  width: 38px;
+  height: 38px;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.sidebar-user-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-user-text strong {
+  font-size: 0.9rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-text small {
+  font-size: 0.74rem;
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ---- Pagina "Contul meu" ---- */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  font-size: 1.5rem;
+}
+
+.profile-info h3 {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+}
+
+.profile-email {
+  margin: 0 0 4px;
+  color: var(--text-muted);
+}
+
+.profile-since {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.profile-actions {
+  margin-top: 18px;
+}
+
+.profile-actions .logout-btn {
+  width: auto;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  background: #fff;
+}
+
+.profile-actions .logout-btn:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+.account-card {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.account-sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 24px 0 20px;
+}
+
+.account-subtitle {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.howto {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  color: var(--text);
+}
+
+.howto li {
+  margin-bottom: 8px;
+}
+
+.howto-note {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.card-hint {
+  margin: -4px 0 14px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+
+/* ---- Zona principala ---- */
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 30px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+/* Pe pagina de cont ascundem complet bara de sus. */
+body.hide-topbar .topbar {
+  display: none;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.topbar-sub {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.topbar-badge {
+  flex: none;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #d7d9fb;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  padding: 28px 30px 48px;
+  overflow-y: auto;
+}
+
+/* ---- Vederi (se comuta din sidebar) ---- */
+.view {
+  display: none;
+  animation: fadeIn 0.25s ease;
+}
+
+.view.active {
+  display: block;
+}
+
+/* Pagina de cont: un singur card care umple tot spatiul ramas pe verticala. */
+#view-account.active {
+  display: flex;
+  min-height: 100%;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+
+.card-wide {
+  grid-column: 1 / -1;
+}
+
+/* Pagina de remindere: formular (stânga) + listă care umple restul ecranului
+   (dreapta). Pe ecrane mari stau una lângă alta; pe ecrane mici se așază vertical. */
+#view-reminders .cards-grid {
+  grid-template-columns: minmax(320px, 380px) 1fr;
+  align-items: stretch;
+}
+
+#view-reminders .card-wide {
+  grid-column: auto;
+}
+
+@media (max-width: 860px) {
+  #view-reminders .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+}
+
+.card h2 {
+  margin: 0 0 16px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---- Formulare ---- */
+form {
+  display: grid;
+  gap: 12px;
+}
+
 label {
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  margin-bottom: -6px;
 }
 
 input,
@@ -52,150 +689,482 @@ textarea,
 select,
 button {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #cfd8dc;
-  border-radius: 8px;
-  font-size: 15px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: var(--surface-alt);
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: var(--ring);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9aa6b4;
 }
 
 textarea {
-  min-height: 80px;
+  min-height: 84px;
   resize: vertical;
 }
 
+/* ---- Butoane ---- */
 button {
-  background: #2e7d32;
-  color: white;
+  background: var(--primary);
+  color: #fff;
   border: none;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.22);
 }
 
 button:hover {
-  opacity: 0.9;
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
 }
 
 .actions {
   display: grid;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .filter {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
+  margin-bottom: 14px;
+}
+
+.filter input {
+  margin: 0;
 }
 
 .filter button {
   width: auto;
+  white-space: nowrap;
+  padding-inline: 18px;
 }
 
-#messageBox {
+/* Bara de filtre a listei de remindere: segmente (Toate/Active) + dropdown animal. */
+.seg-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.seg-bar .seg {
+  width: auto;
+  margin: 0;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.seg-bar .seg:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.seg-bar .seg.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.seg-bar .seg-select {
+  width: auto;
+  margin: 0 0 0 auto;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+  border-radius: 999px;
+}
+
+/* ---- Mesaje de stare ---- */
+#userMessageBox,
+#petMessageBox,
+#messageBox,
+#notificationMessageBox {
   margin-bottom: 12px;
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.success,
+.error {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
 }
 
 .success {
-  color: #2e7d32;
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
 }
 
 .error {
-  color: #c62828;
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
 }
 
-.reminders-list {
-  display: grid;
-  gap: 12px;
-}
-
-.reminder-item {
-  border: 1px solid #dfe6e9;
-  border-radius: 10px;
-  padding: 14px;
-  background: #fafafa;
-}
-
-.reminder-item h3 {
-  margin: 0 0 8px;
-}
-
-.reminder-meta {
-  margin: 4px 0;
-  color: #555;
-}
-
-.reminder-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.reminder-actions button {
-  width: auto;
-}
-
-.done-btn {
-  background: #1565c0;
-}
-
-.delete-btn {
-  background: #c62828;
-}
-
+/* ---- Liste (generic) ---- */
+.users-list,
+.pets-list,
+.reminders-list,
 .notifications-list {
   display: grid;
   gap: 12px;
 }
 
+/* ---- Item generic (user / pet / reminder) ---- */
+.user-item,
+.pet-item,
+.reminder-item {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 15px;
+  background: var(--surface-alt);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.user-item:hover,
+.pet-item:hover,
+.reminder-item:hover {
+  box-shadow: 0 6px 16px rgba(31, 41, 51, 0.08);
+  transform: translateX(2px);
+}
+
+.pet-item {
+  border-left-color: #0ea5e9;
+}
+
+.reminder-item {
+  border-left-color: #f59e0b;
+}
+
+.user-item h3,
+.pet-item h3,
+.reminder-item h3 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.user-meta,
+.pet-meta,
+.reminder-meta {
+  margin: 4px 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.user-meta strong,
+.pet-meta strong,
+.reminder-meta strong {
+  color: var(--text);
+}
+
+/* ---- Antet item (avatar + titlu + chip ID) ---- */
+.item-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.item-head-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.item-head .status-badge {
+  flex: none;
+  align-self: flex-start;
+}
+
+.item-head h3 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.avatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.avatar-user {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.avatar-pet {
+  background: #e0f2fe;
+}
+
+.avatar-reminder {
+  background: #fef3c7;
+}
+
+.id-chip {
+  display: inline-block;
+  font-family: "Consolas", "SF Mono", monospace;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  background: #eef1f6;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ---- Grila de detalii (cheie/valoare) ---- */
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 14px;
+  margin: 4px 0 0;
+}
+
+.meta-grid span {
+  font-size: 0.88rem;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.meta-grid strong {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.item-notes {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* ---- Pilula de categorie ---- */
+.cat-pill {
+  display: inline-block;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.overdue {
+  color: var(--danger);
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* ---- Stare goala ---- */
+.empty-state {
+  margin: 0;
+  padding: 26px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+}
+
+/* ---- Actiuni in item ---- */
+.reminder-actions,
+.pet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.reminder-actions button,
+.pet-actions button {
+  width: auto;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+}
+
+.done-btn {
+  background: var(--info);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+}
+
+.done-btn:hover {
+  background: #1d4ed8;
+}
+
+.delete-btn,
+.delete-pet-btn,
+.delete-notif-btn {
+  background: var(--danger);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.22);
+}
+
+.delete-btn:hover,
+.delete-pet-btn:hover,
+.delete-notif-btn:hover {
+  background: #b91c1c;
+}
+
+/* ---- Notificari ---- */
 .notification-item {
-  border: 1px solid #dfe6e9;
-  border-radius: 10px;
-  padding: 14px;
-  background: #fafafa;
+  border: 1px solid var(--border);
+  border-left: 4px solid #8b5cf6;
+  border-radius: var(--radius-sm);
+  padding: 15px;
+  background: var(--surface-alt);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 15px;
+  gap: 16px;
+  transition: box-shadow 0.15s ease;
 }
+
+.notification-item:hover {
+  box-shadow: 0 6px 16px rgba(31, 41, 51, 0.08);
+}
+
+/* Bordura din stânga reflectă urgența notificării. */
+.notification-item.notif-upcoming { border-left-color: #eab308; }
+.notification-item.notif-due { border-left-color: #f97316; }
+.notification-item.notif-overdue { border-left-color: #ef4444; }
+.notification-item.notif-created { border-left-color: #8b5cf6; }
 
 .notification-content {
   flex: 1;
+  min-width: 0;
 }
 
 .notification-message {
   margin: 0 0 8px;
-  font-weight: 500;
-  color: #222;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.notification-top {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.urgency-badge {
+  display: inline-block;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+
+.urgency-badge.type-created {
+  background: #ede9fe;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+
+.urgency-badge.type-upcoming {
+  background: #fef9c3;
+  color: #854d0e;
+  border-color: #fef08a;
+}
+
+.urgency-badge.type-due {
+  background: #ffedd5;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
+.urgency-badge.type-overdue {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
 }
 
 .notification-meta {
   margin: 4px 0;
-  color: #555;
-  font-size: 0.9em;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.notification-meta strong {
+  color: var(--text);
 }
 
 .status-badge {
   display: inline-block;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.85em;
-  font-weight: bold;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .status-badge.pending {
-  background: #fff3cd;
-  color: #856404;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .status-badge.sent {
-  background: #d1ecf1;
-  color: #0c5460;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .status-badge.read {
-  background: #d4edda;
-  color: #155724;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .notification-actions {
@@ -207,25 +1176,129 @@ button:hover {
 
 .notification-actions button {
   width: 100%;
-  padding: 6px 10px;
-  font-size: 0.9em;
+  padding: 7px 12px;
+  font-size: 0.86rem;
 }
 
 .mark-sent-btn {
-  background: #1565c0;
+  background: var(--info);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+}
+
+.mark-sent-btn:hover {
+  background: #1d4ed8;
 }
 
 .mark-read-btn {
-  background: #2e7d32;
+  background: var(--success);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.22);
 }
 
-.delete-notif-btn {
-  background: #c62828;
+.mark-read-btn:hover {
+  background: #15803d;
+}
+
+/* ---- Mesaj lista goala ---- */
+.users-list > p,
+.pets-list > p,
+.reminders-list > p,
+.notifications-list > p {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-card {
+    grid-template-columns: 1fr;
+    max-width: 440px;
+    min-height: 0;
+  }
+
+  .auth-hero {
+    display: none;
+  }
+
+  .auth-panel {
+    padding: 36px 30px;
+  }
+
+  .auth-brand-mobile {
+    display: flex;
+  }
+
+  .auth-brand-mobile .brand-text strong {
+    color: var(--text);
+  }
+
+  .auth-brand-mobile .brand-text small {
+    color: var(--text-muted);
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 14px 16px;
+  }
+
+  .brand {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding: 0;
+    margin-right: auto;
+  }
+
+  .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex: 1 1 100%;
+    gap: 8px;
+  }
+
+  .nav-link {
+    width: auto;
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 10px 12px;
+  }
+
+  .sidebar-foot {
+    display: none;
+  }
 }
 
 @media (max-width: 700px) {
+  .topbar {
+    padding: 16px 18px;
+  }
+
+  .content {
+    padding: 18px;
+  }
+
+  .nav-link span.nav-ico + * {
+    font-size: 0.88rem;
+  }
+
   .filter {
     grid-template-columns: 1fr;
+  }
+
+  .filter button {
+    width: 100%;
   }
 
   .notification-item {
@@ -235,55 +1308,22 @@ button:hover {
   .notification-actions {
     width: 100%;
     min-width: unset;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
-}
 
-  .reminder-actions {
+  .notification-actions button {
+    width: auto;
+    flex: 1;
+  }
+
+  .reminder-actions,
+  .pet-actions {
     flex-direction: column;
   }
 
-  .reminder-actions button {
+  .reminder-actions button,
+  .pet-actions button {
     width: 100%;
   }
-}.pet-item {
-  border: 1px solid #dfe6e9;
-  border-radius: 10px;
-  padding: 14px;
-  background: #fafafa;
-}
-
-.user-item {
-  border: 1px solid #dfe6e9;
-  border-radius: 10px;
-  padding: 14px;
-  background: #fafafa;
-  margin-bottom: 10px;
-}
-
-.user-item h3 {
-  margin: 0 0 8px;
-}
-
-.user-meta {
-  margin: 4px 0;
-  color: #555;
-}
-
-.pet-item h3 {
-  margin: 0 0 8px;
-}
-
-.pet-meta {
-  margin: 4px 0;
-  color: #555;
-}
-
-.pet-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.delete-pet-btn {
-  background: #c62828;
 }

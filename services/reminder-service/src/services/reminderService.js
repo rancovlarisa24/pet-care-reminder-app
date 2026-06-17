@@ -1,21 +1,21 @@
 // reminderService.js - logica de business pentru memento-uri și ORCHESTRAREA
 // comunicării cu celelalte microservicii (Pet Service și Notification Service).
+// Toate operațiile sunt legate de utilizatorul logat (userId din token).
 const reminderRepository = require("../repositories/reminderRepository");
-const { verifyPetExists, getPetOwnerId } = require("./petClient");
-const { createNotificationForReminder } = require("./notificationClient");
+const { getOwnedPet } = require("./petClient");
 
-// Returnează toate memento-urile.
-const getAllReminders = async () => {
-  const reminders = await reminderRepository.findAll();
-  return reminders;
+// Returnează reminderele utilizatorului logat.
+const getAllReminders = async (userId) => {
+  return reminderRepository.findAllByUser(userId);
 };
 
-// Creează un memento nou. Pași:
+// Creează un memento nou pentru utilizatorul logat. Pași:
 //  1. validează câmpurile obligatorii (petId, title, reminderDate)
-//  2. verifică prin REST că animalul există (Pet Service)
-//  3. salvează memento-ul în MySQL
-//  4. află cine deține animalul (owner-ul) și creează o notificare pentru el
-const createReminder = async (reminderData) => {
+//  2. verifică prin REST că animalul există ȘI aparține utilizatorului (Pet Service)
+//  3. salvează memento-ul în MySQL (legat de user_id)
+// NU se trimite nicio notificare la creare: notificările apar doar când se
+// apropie/vine/trece data reminderului (generate de scheduler).
+const createReminder = async (reminderData, userId) => {
   if (!reminderData.petId) {
     throw new Error("petId is required");
   }
@@ -28,39 +28,35 @@ const createReminder = async (reminderData) => {
     throw new Error("reminderDate is required");
   }
 
-  await verifyPetExists(reminderData.petId);
+  // Verifică proprietatea animalului: nu poți crea remindere pentru animalul altcuiva.
+  await getOwnedPet(reminderData.petId, userId);
 
-  const createdReminder = await reminderRepository.create(reminderData);
-
-  const ownerId = await getPetOwnerId(reminderData.petId);
-  await createNotificationForReminder(createdReminder, ownerId);
+  const createdReminder = await reminderRepository.create({ ...reminderData, userId });
 
   return createdReminder;
 };
 
-// Returnează memento-urile unui anumit animal.
-const getRemindersByPetId = async (petId) => {
+// Returnează reminderele unui animal (doar cele ale utilizatorului logat).
+const getRemindersByPetId = async (petId, userId) => {
   if (!petId) {
     throw new Error("petId is required");
   }
 
-  const reminders = await reminderRepository.findByPetId(petId);
-  return reminders;
+  return reminderRepository.findByPetId(petId, userId);
 };
 
-// Returnează doar memento-urile active.
-const getActiveReminders = async () => {
-  const reminders = await reminderRepository.findActive();
-  return reminders;
+// Returnează reminderele active ale utilizatorului logat.
+const getActiveReminders = async (userId) => {
+  return reminderRepository.findActiveByUser(userId);
 };
 
-// Marchează un memento ca realizat; aruncă eroare dacă nu este găsit.
-const markReminderAsDone = async (id) => {
+// Marchează un memento al utilizatorului ca realizat; aruncă eroare dacă nu există/nu îi aparține.
+const markReminderAsDone = async (id, userId) => {
   if (!id) {
     throw new Error("reminder id is required");
   }
 
-  const updatedReminder = await reminderRepository.markAsDone(id);
+  const updatedReminder = await reminderRepository.markAsDone(id, userId);
 
   if (!updatedReminder) {
     throw new Error("reminder not found");
@@ -69,13 +65,13 @@ const markReminderAsDone = async (id) => {
   return updatedReminder;
 };
 
-// Șterge un memento; aruncă eroare dacă nu este găsit.
-const deleteReminder = async (id) => {
+// Șterge un memento al utilizatorului; aruncă eroare dacă nu există/nu îi aparține.
+const deleteReminder = async (id, userId) => {
   if (!id) {
     throw new Error("reminder id is required");
   }
 
-  const deletedReminder = await reminderRepository.remove(id);
+  const deletedReminder = await reminderRepository.remove(id, userId);
 
   if (!deletedReminder) {
     throw new Error("reminder not found");

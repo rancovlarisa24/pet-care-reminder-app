@@ -8,6 +8,7 @@ const dotenv = require("dotenv");
 dotenv.config(); // încarcă variabilele de mediu din .env
 
 const reminderRoutes = require("./routes/reminderRoutes");
+const { startScheduler } = require("./scheduler/notificationScheduler");
 
 const app = express();
 
@@ -34,4 +35,6 @@ const PORT = process.env.PORT || 3003;
 
 app.listen(PORT, () => {
   console.log(`Reminder Service running on port ${PORT}`);
+  // Pornim scheduler-ul de notificări temporizate (upcoming/due/overdue).
+  startScheduler();
 });

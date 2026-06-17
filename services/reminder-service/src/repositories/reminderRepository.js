@@ -8,6 +8,7 @@ const createRemindersTable = async () => {
   const query = `
     CREATE TABLE IF NOT EXISTS reminders (
       id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
       pet_id VARCHAR(255) NOT NULL,
       title VARCHAR(255) NOT NULL,
       description TEXT,
@@ -21,22 +22,24 @@ const createRemindersTable = async () => {
   await pool.query(query);
 };
 
-// Returnează toate memento-urile, ordonate după data scadenței.
-const findAll = async () => {
+// Returnează reminderele unui utilizator, ordonate după data scadenței.
+const findAllByUser = async (userId) => {
   await createRemindersTable();
 
   const [rows] = await pool.query(
-    "SELECT * FROM reminders ORDER BY reminder_date ASC"
+    "SELECT * FROM reminders WHERE user_id = ? ORDER BY reminder_date ASC",
+    [userId]
   );
 
   return rows;
 };
 
-// Inserează un memento nou și returnează rândul creat.
+// Inserează un memento nou (legat de utilizatorul logat) și returnează rândul creat.
 const create = async (reminderData) => {
   await createRemindersTable();
 
   const {
+    userId,
     petId,
     title,
     description,
@@ -47,11 +50,12 @@ const create = async (reminderData) => {
 
   const query = `
     INSERT INTO reminders 
-      (pet_id, title, description, category, reminder_date, status)
-    VALUES (?, ?, ?, ?, ?, ?)
+      (user_id, pet_id, title, description, category, reminder_date, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   const [result] = await pool.query(query, [
+    userId,
     petId,
     title,
     description,
@@ -68,20 +72,33 @@ const create = async (reminderData) => {
   return rows[0];
 };
 
-// Returnează memento-urile asociate unui animal (după pet_id).
-const findByPetId = async (petId) => {
+// Returnează reminderele unui animal, dar DOAR cele ale utilizatorului logat.
+const findByPetId = async (petId, userId) => {
   await createRemindersTable();
 
   const [rows] = await pool.query(
-    "SELECT * FROM reminders WHERE pet_id = ? ORDER BY reminder_date ASC",
-    [petId]
+    "SELECT * FROM reminders WHERE pet_id = ? AND user_id = ? ORDER BY reminder_date ASC",
+    [petId, userId]
   );
 
   return rows;
 };
 
-// Returnează doar memento-urile cu status 'active'.
-const findActive = async () => {
+// Returnează reminderele active ale utilizatorului logat.
+const findActiveByUser = async (userId) => {
+  await createRemindersTable();
+
+  const [rows] = await pool.query(
+    "SELECT * FROM reminders WHERE status = ? AND user_id = ? ORDER BY reminder_date ASC",
+    ["active", userId]
+  );
+
+  return rows;
+};
+
+// Returnează TOATE reminderele active (ale tuturor utilizatorilor).
+// Folosit de scheduler pentru a genera notificări temporizate (upcoming/due/overdue).
+const findAllActive = async () => {
   await createRemindersTable();
 
   const [rows] = await pool.query(
@@ -92,13 +109,13 @@ const findActive = async () => {
   return rows;
 };
 
-// Marchează un memento ca realizat (status 'done'); returnează null dacă nu există.
-const markAsDone = async (id) => {
+// Marchează un memento al utilizatorului ca realizat; returnează null dacă nu există/nu îi aparține.
+const markAsDone = async (id, userId) => {
   await createRemindersTable();
 
   const [result] = await pool.query(
-    "UPDATE reminders SET status = ? WHERE id = ?",
-    ["done", id]
+    "UPDATE reminders SET status = ? WHERE id = ? AND user_id = ?",
+    ["done", id, userId]
   );
 
   if (result.affectedRows === 0) {
@@ -113,13 +130,13 @@ const markAsDone = async (id) => {
   return rows[0];
 };
 
-// Șterge un memento după id; returnează rândul șters sau null dacă nu există.
-const remove = async (id) => {
+// Șterge un memento al utilizatorului; returnează rândul șters sau null dacă nu există/nu îi aparține.
+const remove = async (id, userId) => {
   await createRemindersTable();
 
   const [rows] = await pool.query(
-    "SELECT * FROM reminders WHERE id = ?",
-    [id]
+    "SELECT * FROM reminders WHERE id = ? AND user_id = ?",
+    [id, userId]
   );
 
   if (rows.length === 0) {
@@ -127,8 +144,8 @@ const remove = async (id) => {
   }
 
   await pool.query(
-    "DELETE FROM reminders WHERE id = ?",
-    [id]
+    "DELETE FROM reminders WHERE id = ? AND user_id = ?",
+    [id, userId]
   );
 
   return rows[0];
@@ -136,10 +153,11 @@ const remove = async (id) => {
 
 module.exports = {
   createRemindersTable,
-  findAll,
+  findAllByUser,
   create,
   findByPetId,
-  findActive,
+  findActiveByUser,
+  findAllActive,
   markAsDone,
   remove
 };

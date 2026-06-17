@@ -54,4 +54,4 @@ docker compose ps
 echo ""
 echo "==> Gata. Aplicația este disponibilă pe portul 80 al instanței EC2:"
 echo "    Frontend: http://<IP-PUBLIC-EC2>/"
-echo "    API:      http://<IP-PUBLIC-EC2>/api/users (și /api/pets, /api/reminders, /api/notifications)"
+echo "    API:      http://<IP-PUBLIC-EC2>/api/auth/login (și /api/pets, /api/reminders, /api/notifications)"

@@ -1,21 +1,21 @@
 // index.js - punctul de pornire al User Service (microserviciul de utilizatori).
-// Configureaz\u0103 serverul Express, monteaz\u0103 rutele la /api/users, ini\u021bializeaz\u0103
-// baza de date PostgreSQL \u0219i pornește serverul pe portul configurat (3001).
+// Configurează serverul Express, montează rutele de autentificare la /api/auth,
+// inițializează baza de date PostgreSQL și pornește serverul pe portul 3001.
 const express = require('express');
 const cors = require('cors');
-const userRoutes = require('./routes');
+const authRoutes = require('./routes');
 const { initDb } = require('./db');
 
 const app = express();
-app.use(cors());           // permite cererile din browser (frontend) c\u0103tre acest API
-app.use(express.json());   // parseaz\u0103 automat body-ul JSON al cererilor
+app.use(cors());           // permite cererile din browser (frontend) către acest API
+app.use(express.json());   // parsează automat body-ul JSON al cererilor
 
 // Health check pentru verificare rapidă / Docker
 app.get('/health', (req, res) =>
   res.json({ status: 'ok', service: 'user-service' })
 );
 
-app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
 
 // Error handler centralizat
 app.use((err, req, res, next) => {
