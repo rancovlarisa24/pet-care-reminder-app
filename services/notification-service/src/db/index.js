@@ -25,12 +25,21 @@ const initializeDatabase = () => {
       reminder_id TEXT NOT NULL,
       channel TEXT DEFAULT 'in-app',
       message TEXT NOT NULL,
+      type TEXT DEFAULT 'created',
       status TEXT DEFAULT 'pending',
       created_at TEXT NOT NULL,
       sent_at TEXT,
       read_at TEXT
     )
   `);
+
+  // Migrare pentru baze de date existente: adăugăm coloana `type` dacă lipsește.
+  // (`type` clasifică notificarea: created / upcoming / due / overdue.)
+  const columns = db.prepare('PRAGMA table_info(notifications)').all();
+  const hasType = columns.some((c) => c.name === 'type');
+  if (!hasType) {
+    db.exec("ALTER TABLE notifications ADD COLUMN type TEXT DEFAULT 'created'");
+  }
 
   console.log('✓ Database initialized');
 };

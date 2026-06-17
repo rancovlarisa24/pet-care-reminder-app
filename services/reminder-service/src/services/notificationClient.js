@@ -1,33 +1,47 @@
 // notificationClient.js - client REST prin care Reminder Service cere
-// Notification Service s\u0103 creeze o notificare pentru un memento.
+// Notification Service să creeze o notificare pentru un memento.
 // Comunicarea se face exclusiv prin API-ul REST al Notification Service.
 const axios = require("axios");
 
-// Trimite o cerere de creare notificare. Prime\u0219te memento-ul \u0219i userId-ul
-// proprietarului animalului, astfel \u00eenc\u00e2t notificarea s\u0103 ajung\u0103 la utilizatorul corect.
-const createNotificationForReminder = async (reminder, userId) => {
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || "dev-internal-key";
+
+// Trimite o cerere generică de creare notificare (server-to-server, cu cheia
+// internă). `dedupe` cere serviciului să NU creeze un duplicat dacă există deja
+// o notificare de același tip pentru acel memento.
+const postNotification = async ({ reminder, userId, type, message, dedupe }) => {
   const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL;
 
   if (!notificationServiceUrl) {
-    console.log("NOTIFICATION_SERVICE_URL is not configured. Skipping notification creation.");
-    return;
+    console.log("NOTIFICATION_SERVICE_URL is not configured. Skipping notification.");
+    return false;
   }
 
   try {
-    await axios.post(`${notificationServiceUrl}/api/notifications`, {
-      userId: userId || 1,        // owner-ul animalului (fallback 1 \u00een mod demo)
-      reminderId: reminder.id,
-      channel: "in-app",
-      message: `Reminder: ${reminder.title}`,
-      status: "pending"
-    });
-
-    console.log("Notification request sent successfully.");
+    await axios.post(
+      `${notificationServiceUrl}/api/notifications`,
+      {
+        userId,
+        reminderId: reminder.id,
+        channel: "in-app",
+        type,
+        message,
+        dedupe: dedupe === true,
+      },
+      { headers: { "X-Internal-Key": INTERNAL_API_KEY } }
+    );
+    return true;
   } catch (error) {
     console.log("Notification Service unavailable. Continuing without notification.");
+    return false;
   }
 };
 
+// Notificare temporizată generată de scheduler (upcoming/due/overdue).
+// Folosește dedupe ca fiecare etapă să fie anunțată o singură dată.
+const createTimedNotification = async (reminder, userId, type, message) => {
+  return postNotification({ reminder, userId, type, message, dedupe: true });
+};
+
 module.exports = {
-  createNotificationForReminder
+  createTimedNotification,
 };

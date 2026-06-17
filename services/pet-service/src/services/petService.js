@@ -1,10 +1,11 @@
 // petService.js - logica de business pentru animale: validează datele primite
 // înainte de a le trimite către repository (stratul de acces la MongoDB).
+// Toate operațiile sunt legate de proprietar (userId), pentru izolarea datelor.
 const petRepository = require('../repositories/petRepository');
 
-// Creează un animal nou după ce verifică că toate câmpurile obligatorii sunt valide.
-const createPet = async (petData) => {
-  const { userId, name, type, breed, age } = petData;
+// Creează un animal nou pentru utilizatorul logat (userId vine din token, nu din body).
+const createPet = async (petData, userId) => {
+  const { name, type, breed, age } = petData;
 
   if (userId === undefined || userId === null) {
     throw new Error('userId is required');
@@ -34,13 +35,9 @@ const createPet = async (petData) => {
   return pet;
 };
 
-// Returnează toate animalele.
-const getAllPets = async () => {
-  return petRepository.findAll();
-};
-
-// Returnează un animal după id; aruncă eroare dacă nu este găsit.
-const getPetById = async (id) => {
+// Returnează un animal după id. Un utilizator vede doar animalele lui; un apel
+// intern (isInternal) poate citi orice animal (ex: Reminder Service verifică owner-ul).
+const getPetById = async (id, userId, isInternal = false) => {
   if (!id) {
     throw new Error('id is required');
   }
@@ -48,6 +45,11 @@ const getPetById = async (id) => {
   const pet = await petRepository.findById(id);
 
   if (!pet) {
+    throw new Error('Pet not found');
+  }
+
+  if (!isInternal && Number(pet.userId) !== Number(userId)) {
+    // Nu dezvăluim existența animalului altui utilizator.
     throw new Error('Pet not found');
   }
 
@@ -63,24 +65,23 @@ const getPetsByUserId = async (userId) => {
   return petRepository.findByUserId(Number(userId));
 };
 
-// Șterge un animal după id; aruncă eroare dacă nu este găsit.
-const deletePet = async (id) => {
+// Șterge un animal al utilizatorului logat; aruncă eroare dacă nu există sau nu îi aparține.
+const deletePet = async (id, userId) => {
   if (!id) {
     throw new Error('id is required');
   }
 
-  const pet = await petRepository.remove(id);
+  const pet = await petRepository.findById(id);
 
-  if (!pet) {
+  if (!pet || Number(pet.userId) !== Number(userId)) {
     throw new Error('Pet not found');
   }
 
-  return pet;
+  return petRepository.remove(id);
 };
 
 module.exports = {
   createPet,
-  getAllPets,
   getPetById,
   getPetsByUserId,
   deletePet

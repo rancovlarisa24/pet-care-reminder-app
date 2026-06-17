@@ -1,33 +1,19 @@
 // app.js - logica frontend-ului. Toate cererile trec prin Nginx la /api/...,
-// care le redirecționează către microserviciul potrivit. Codul este împărțit pe
-// cele 4 zone: utilizatori, animale, memento-uri (reminders) și notificări.
+// care le redirecționează către microserviciul potrivit. Fiecare cerere include
+// token-ul JWT (din auth.js), astfel încât userul vede DOAR datele lui.
 const API_BASE_URL = '/api';
-
-// --- Referințe către elementele HTML pentru zona Utilizatori ---
-const userForm = document.getElementById('userForm');
-const loadUsersBtn = document.getElementById('loadUsersBtn');
-const usersList = document.getElementById('usersList');
-const userMessageBox = document.getElementById('userMessageBox');
 
 // --- Referințe HTML pentru zona Animale ---
 const petForm = document.getElementById('petForm');
-const loadPetsBtn = document.getElementById('loadPetsBtn');
-const filterPetsByUserBtn = document.getElementById('filterPetsByUserBtn');
 const petsList = document.getElementById('petsList');
 const petMessageBox = document.getElementById('petMessageBox');
 
 // --- Referințe HTML pentru zona Memento-uri (Reminders) ---
 const reminderForm = document.getElementById('reminderForm');
-const loadRemindersBtn = document.getElementById('loadRemindersBtn');
-const loadActiveRemindersBtn = document.getElementById('loadActiveRemindersBtn');
-const filterByPetBtn = document.getElementById('filterByPetBtn');
 const remindersList = document.getElementById('remindersList');
 const messageBox = document.getElementById('messageBox');
 
 // --- Referințe HTML pentru zona Notificări ---
-const notificationForm = document.getElementById('notificationForm');
-const loadNotificationsBtn = document.getElementById('loadNotificationsBtn');
-const filterNotifByUserBtn = document.getElementById('filterNotifByUserBtn');
 const notificationsList = document.getElementById('notificationsList');
 const notificationMessageBox = document.getElementById('notificationMessageBox');
 
@@ -52,12 +38,94 @@ const formatDate = (dateValue) => {
   return new Date(dateValue).toLocaleDateString('ro-RO');
 };
 
+// --- Helperi de prezentare (doar pentru afișare, nu afectează apelurile API) ---
+
+// Scapă textul introdus de utilizator înainte de a-l pune în HTML (protecție XSS).
+const escapeHtml = (value) => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+// Iniţialele unui nume (pentru avatarul utilizatorului).
+const initials = (name) => {
+  const parts = String(name || '?').trim().split(/\s+/);
+  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?';
+};
+
+// Etichete + iconițe pentru categoriile de reminder (corespund opțiunilor din formular).
+const CATEGORY_INFO = {
+  food: { label: 'Hrană', icon: '🍖' },
+  bath: { label: 'Baie', icon: '🛁' },
+  walk: { label: 'Plimbare', icon: '🦮' },
+  vaccine: { label: 'Vaccin', icon: '💉' },
+  medicine: { label: 'Medicamente', icon: '💊' },
+  vet: { label: 'Vizită veterinar', icon: '🏥' },
+  other: { label: 'Altceva', icon: '📌' },
+};
+
+// Iconiță pentru tipul animalului (avatar).
+const petAvatar = (type) => {
+  const t = String(type || '').toLowerCase();
+  if (t.includes('dog') || t.includes('câine') || t.includes('caine')) return '🐶';
+  if (t.includes('cat') || t.includes('pisic')) return '🐱';
+  if (t.includes('bird') || t.includes('pas')) return '🐦';
+  if (t.includes('fish') || t.includes('pest')) return '🐠';
+  if (t.includes('rabbit') || t.includes('iepur')) return '🐰';
+  return '🐾';
+};
+
+// Lista animalelor utilizatorului, ținută în memorie ca să putem afișa NUMELE
+// animalului (în loc de ID tehnic) și să populăm dropdown-urile de selecție.
+let petsCache = [];
+
+// Întoarce numele animalului după id (sau null dacă nu e în cache).
+const petNameById = (id) => {
+  const pet = petsCache.find((p) => p._id === id);
+  return pet ? pet.name : null;
+};
+
+// Reumple selectoarele de animale (din formularul de creare reminder și din
+// filtrul listei) pe baza animalelor curente, păstrând selecția existentă.
+const refreshPetSelectors = () => {
+  const createSelect = document.getElementById('petId');
+  const filterSelect = document.getElementById('filterPetId');
+
+  if (createSelect) {
+    const prev = createSelect.value;
+    const options = petsCache
+      .map((p) => `<option value="${escapeHtml(p._id)}">${petAvatar(p.type)} ${escapeHtml(p.name)}</option>`)
+      .join('');
+    createSelect.innerHTML = petsCache.length
+      ? `<option value="" disabled${prev ? '' : ' selected'}>Alege un animal…</option>${options}`
+      : '<option value="" disabled selected>Adaugă întâi un animal</option>';
+    if (prev) {
+      createSelect.value = prev;
+    }
+  }
+
+  if (filterSelect) {
+    const prev = filterSelect.value;
+    const options = petsCache
+      .map((p) => `<option value="${escapeHtml(p._id)}">${petAvatar(p.type)} ${escapeHtml(p.name)}</option>`)
+      .join('');
+    filterSelect.innerHTML = `<option value="">Toate animalele</option>${options}`;
+    filterSelect.value = prev;
+  }
+};
+
 // Construiește și afișează în pagină lista de animale.
 const renderPets = (pets) => {
   petsList.innerHTML = '';
 
   if (!pets || pets.length === 0) {
-    petsList.innerHTML = '<p>Nu există animale pentru afișare.</p>';
+    petsList.innerHTML = '<p class="empty-state">🐾 Niciun animal încă. Adaugă unul folosind formularul.</p>';
     return;
   }
 
@@ -66,14 +134,20 @@ const renderPets = (pets) => {
     item.className = 'pet-item';
 
     item.innerHTML = `
-      <h3>${pet.name}</h3>
-      <p class="pet-meta"><strong>User ID:</strong> ${pet.userId}</p>
-      <p class="pet-meta"><strong>Tip:</strong> ${pet.type}</p>
-      <p class="pet-meta"><strong>Rasă:</strong> ${pet.breed}</p>
-      <p class="pet-meta"><strong>Vârstă:</strong> ${pet.age}</p>
-      <p>${pet.notes || ''}</p>
+      <div class="item-head">
+        <span class="avatar avatar-pet">${petAvatar(pet.type)}</span>
+        <div class="item-head-text">
+          <h3>${escapeHtml(pet.name)}</h3>
+          <span class="cat-pill">${petAvatar(pet.type)} ${escapeHtml(pet.type)}</span>
+        </div>
+      </div>
+      <div class="meta-grid">
+        <span><strong>Rasă</strong> ${escapeHtml(pet.breed)}</span>
+        <span><strong>Vârstă</strong> ${escapeHtml(pet.age)} ani</span>
+      </div>
+      ${pet.notes ? `<p class="item-notes">${escapeHtml(pet.notes)}</p>` : ''}
       <div class="pet-actions">
-        <button class="delete-pet-btn" data-id="${pet._id}">Șterge</button>
+        <button class="delete-pet-btn" data-id="${escapeHtml(pet._id)}">Șterge</button>
       </div>
     `;
 
@@ -86,7 +160,7 @@ const renderReminders = (reminders) => {
   remindersList.innerHTML = '';
 
   if (!reminders || reminders.length === 0) {
-    remindersList.innerHTML = '<p>Nu există remindere pentru afișare.</p>';
+    remindersList.innerHTML = '<p class="empty-state">⏰ Niciun reminder. Creează unul pentru un animal.</p>';
     return;
   }
 
@@ -94,16 +168,31 @@ const renderReminders = (reminders) => {
     const item = document.createElement('div');
     item.className = 'reminder-item';
 
+    const cat = CATEGORY_INFO[reminder.category] || { label: reminder.category || '-', icon: '📌' };
+    const status = reminder.status || 'active';
+    const isDone = status === 'done';
+    const dateValue = reminder.reminderDate || reminder.reminder_date;
+    const isOverdue = !isDone && dateValue && new Date(dateValue) < new Date(new Date().toDateString());
+    const petId = reminder.petId || reminder.pet_id;
+    const petName = petNameById(petId) || 'Animal șters';
+
     item.innerHTML = `
-      <h3>${reminder.title}</h3>
-      <p class="reminder-meta"><strong>Pet ID:</strong> ${reminder.petId || reminder.pet_id}</p>
-      <p class="reminder-meta"><strong>Categorie:</strong> ${reminder.category || '-'}</p>
-      <p class="reminder-meta"><strong>Data:</strong> ${formatDate(reminder.reminderDate || reminder.reminder_date)}</p>
-      <p class="reminder-meta"><strong>Status:</strong> ${reminder.status}</p>
-      <p>${reminder.description || ''}</p>
+      <div class="item-head">
+        <span class="avatar avatar-reminder">${cat.icon}</span>
+        <div class="item-head-text">
+          <h3>${escapeHtml(reminder.title)}</h3>
+          <span class="cat-pill">${cat.icon} ${escapeHtml(cat.label)}</span>
+        </div>
+        <span class="status-badge ${isDone ? 'read' : 'sent'}">${isDone ? 'Realizat' : 'Activ'}</span>
+      </div>
+      <div class="meta-grid">
+        <span><strong>Animal</strong> ${escapeHtml(petName)}</span>
+        <span><strong>Data</strong> ${formatDate(dateValue)} ${isOverdue ? '<em class="overdue">· întârziat</em>' : ''}</span>
+      </div>
+      ${reminder.description ? `<p class="item-notes">${escapeHtml(reminder.description)}</p>` : ''}
       <div class="reminder-actions">
-        <button class="done-btn" data-id="${reminder.id}">Marchează done</button>
-        <button class="delete-btn" data-id="${reminder.id}">Șterge</button>
+        ${isDone ? '' : `<button class="done-btn" data-id="${escapeHtml(reminder.id)}">Marchează realizat</button>`}
+        <button class="delete-btn" data-id="${escapeHtml(reminder.id)}">Șterge</button>
       </div>
     `;
 
@@ -111,114 +200,62 @@ const renderReminders = (reminders) => {
   });
 };
 
-// Helper generic: face un fetch, parsează JSON-ul și aruncă eroare dacă răspunsul nu e OK.
-const fetchJson = async (url, options) => {
-  const response = await fetch(url, options);
+// Helper generic: face un fetch autentificat (adaugă token-ul JWT), parsează
+// JSON-ul și aruncă eroare dacă răspunsul nu e OK. La 401 (token expirat/invalid)
+// deconectează automat utilizatorul.
+const fetchJson = async (url, options = {}) => {
+  const token = window.PetCareAuth ? window.PetCareAuth.getToken() : null;
+
+  const headers = { ...(options.headers || {}) };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  // Pentru cererile cu body trimitem mereu JSON.
+  if (options.body && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const response = await fetch(url, { ...options, headers });
+
+  if (response.status === 401) {
+    if (window.PetCareAuth) {
+      window.PetCareAuth.logout();
+    }
+    throw new Error('Sesiune expirată. Te rugăm să te autentifici din nou.');
+  }
+
   const result = await response.json();
 
   if (!response.ok) {
-    throw new Error(result.error || 'Eroare API');
+    throw new Error(result.error || result.message || 'Eroare API');
   }
 
   return result;
 };
 
-// Construiește și afișează lista de utilizatori.
-// Atenție: User Service returnează un array direct (nu învelit în { data }).
-const renderUsers = (users) => {
-  usersList.innerHTML = '';
-
-  if (!users || users.length === 0) {
-    usersList.innerHTML = '<p>Nu există utilizatori pentru afișare.</p>';
-    return;
-  }
-
-  users.forEach((user) => {
-    const item = document.createElement('div');
-    item.className = 'user-item';
-    item.innerHTML = `
-      <h3>${user.name}</h3>
-      <p class="user-meta"><strong>ID:</strong> ${user.id}</p>
-      <p class="user-meta"><strong>Email:</strong> ${user.email}</p>
-      <p class="user-meta"><strong>Creat:</strong> ${formatDate(user.created_at)}</p>
-    `;
-    usersList.appendChild(item);
-  });
-};
-
-// Încarcă utilizatorii din API și îi afișează.
-const loadUsers = async () => {
-  try {
-    clearMessage(userMessageBox);
-    const users = await fetchJson(`${API_BASE_URL}/users`);
-    renderUsers(users);
-    showMessage(userMessageBox, 'Utilizatorii au fost încărcați.');
-  } catch (error) {
-    showMessage(userMessageBox, 'Nu s-au putut încărca utilizatorii.', 'error');
-  }
-};
-
-// Trimite formularul de creare utilizator către API (POST /api/users).
-const createUser = async (event) => {
-  event.preventDefault();
-
-  const payload = {
-    name: document.getElementById('userName').value.trim(),
-    email: document.getElementById('userEmail').value.trim()
-  };
-
-  try {
-    clearMessage(userMessageBox);
-    await fetchJson(`${API_BASE_URL}/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    userForm.reset();
-    showMessage(userMessageBox, 'Utilizatorul a fost creat cu succes.');
-    await loadUsers();
-  } catch (error) {
-    showMessage(userMessageBox, error.message, 'error');
-  }
-};
-
-// Încarcă toate animalele și le afișează.
+// Încarcă animalele utilizatorului logat și le afișează.
 const loadPets = async () => {
   try {
     clearMessage(petMessageBox);
     const result = await fetchJson(`${API_BASE_URL}/pets`);
-    renderPets(result.data);
-    showMessage(petMessageBox, 'Animalele au fost încărcate.');
+    petsCache = result.data || [];
+    renderPets(petsCache);
+    refreshPetSelectors();
+    // Reafișăm reminderele ca să apară numele animalelor (nu doar ID-urile).
+    if (remindersList.childElementCount > 0) {
+      await loadReminders(true);
+    }
   } catch (error) {
     showMessage(petMessageBox, 'Nu s-au putut încărca animalele.', 'error');
   }
 };
 
-// Filtrează animalele după User ID (GET /api/pets/user/:id).
-const filterPetsByUser = async () => {
-  const userId = document.getElementById('filterPetUserId').value.trim();
-
-  if (!userId) {
-    showMessage(petMessageBox, 'Introdu un User ID pentru filtrare.', 'error');
-    return;
-  }
-
-  try {
-    clearMessage(petMessageBox);
-    const result = await fetchJson(`${API_BASE_URL}/pets/user/${userId}`);
-    renderPets(result.data);
-    showMessage(petMessageBox, `Animalele pentru user ${userId} au fost încărcate.`);
-  } catch (error) {
-    showMessage(petMessageBox, 'Nu s-au putut filtra animalele.', 'error');
-  }
-};
-
 // Trimite formularul de creare animal către API (POST /api/pets).
+// userId NU se trimite din formular - vine din token (proprietarul = userul logat).
 const createPet = async (event) => {
   event.preventDefault();
 
   const payload = {
-    userId: Number(document.getElementById('petUserId').value.trim()),
     name: document.getElementById('petName').value.trim(),
     type: document.getElementById('petType').value.trim(),
     breed: document.getElementById('petBreed').value.trim(),
@@ -256,12 +293,13 @@ const deletePet = async (id) => {
 };
 
 // Încarcă toate memento-urile.
-const loadReminders = async () => {
+const loadReminders = async (silent = false) => {
   try {
-    clearMessage(messageBox);
+    if (!silent) {
+      clearMessage(messageBox);
+    }
     const result = await fetchJson(`${API_BASE_URL}/reminders`);
     renderReminders(result.data);
-    showMessage(messageBox, 'Reminderele au fost încărcate.');
   } catch (error) {
     showMessage(messageBox, 'Nu s-au putut încărca reminderele.', 'error');
   }
@@ -273,18 +311,15 @@ const loadActiveReminders = async () => {
     clearMessage(messageBox);
     const result = await fetchJson(`${API_BASE_URL}/reminders/active`);
     renderReminders(result.data);
-    showMessage(messageBox, 'Reminderele active au fost încărcate.');
   } catch (error) {
     showMessage(messageBox, 'Nu s-au putut încărca reminderele active.', 'error');
   }
 };
 
-// Filtrează memento-urile după Pet ID (GET /api/reminders/pet/:id).
-const filterRemindersByPet = async () => {
-  const petId = document.getElementById('filterPetId').value.trim();
-
+// Filtrează memento-urile după animalul ales în dropdown (GET /api/reminders/pet/:id).
+const filterRemindersByPet = async (petId) => {
   if (!petId) {
-    showMessage(messageBox, 'Introdu un Pet ID pentru filtrare.', 'error');
+    await loadReminders();
     return;
   }
 
@@ -292,7 +327,6 @@ const filterRemindersByPet = async () => {
     clearMessage(messageBox);
     const result = await fetchJson(`${API_BASE_URL}/reminders/pet/${petId}`);
     renderReminders(result.data);
-    showMessage(messageBox, `Reminderele pentru ${petId} au fost încărcate.`);
   } catch (error) {
     showMessage(messageBox, 'Nu s-au putut filtra reminderele.', 'error');
   }
@@ -334,7 +368,7 @@ const markReminderAsDone = async (id) => {
     await fetchJson(`${API_BASE_URL}/reminders/${id}/done`, {
       method: 'PUT'
     });
-    showMessage(messageBox, 'Reminder marcat ca done.');
+    showMessage(messageBox, 'Reminder marcat ca realizat.');
     await loadReminders();
   } catch (error) {
     showMessage(messageBox, error.message, 'error');
@@ -360,7 +394,7 @@ const renderNotifications = (notifications) => {
   notificationsList.innerHTML = '';
 
   if (!notifications || notifications.length === 0) {
-    notificationsList.innerHTML = '<p>Nu există notificări pentru afișare.</p>';
+    notificationsList.innerHTML = '<p class="empty-state">🔔 Nicio notificare \u00eenc\u0103. Apar automat c\u00e2nd creezi remindere.</p>';
     return;
   }
 
@@ -368,26 +402,37 @@ const renderNotifications = (notifications) => {
     const item = document.createElement('div');
     item.className = 'notification-item';
 
-    // Statusul notificării vine din câmpul `status` (pending/sent/read).
+    // Statusul notificării: în interfață avem doar „necitit” vs „citit”.
+    // (Backend-ul mai are un status intermediar `sent`, tratat aici tot ca necitit.)
     const status = notif.status || 'pending';
-    const statusMap = { pending: 'Neexpediat', sent: 'Trimis', read: 'Citit' };
-    const statusText = statusMap[status] || status;
-    const userId = notif.user_id ?? notif.userId;
-    const reminderId = notif.reminder_id ?? notif.reminderId;
+    const isRead = status === 'read';
+    const statusText = isRead ? 'Citit' : 'Necitit';
+
+    // Tipul notificării (created/upcoming/due/overdue) => badge de urgență colorat.
+    const type = notif.type || 'created';
+    const typeMap = {
+      created: { label: '🆕 Nou', cls: 'type-created' },
+      upcoming: { label: '⏳ Se apropie', cls: 'type-upcoming' },
+      due: { label: '📅 Astăzi', cls: 'type-due' },
+      overdue: { label: '⚠️ Restant', cls: 'type-overdue' },
+    };
+    const typeInfo = typeMap[type] || typeMap.created;
+    item.classList.add(`notif-${type}`);
+
     const createdAt = notif.created_at ?? notif.createdAt;
 
     item.innerHTML = `
       <div class="notification-content">
-        <p class="notification-message">${notif.message}</p>
-        <p class="notification-meta"><strong>User:</strong> ${userId}</p>
-        <p class="notification-meta"><strong>Reminder:</strong> ${reminderId}</p>
-        <p class="notification-meta"><strong>Status:</strong> <span class="status-badge ${status}">${statusText}</span></p>
-        <p class="notification-meta"><strong>Data:</strong> ${formatDate(createdAt)}</p>
+        <div class="notification-top">
+          <span class="urgency-badge ${typeInfo.cls}">${typeInfo.label}</span>
+          <span class="status-badge ${isRead ? 'read' : 'pending'}">${statusText}</span>
+        </div>
+        <p class="notification-message">${escapeHtml(notif.message)}</p>
+        <div class="notification-meta">${formatDate(createdAt)}</div>
       </div>
       <div class="notification-actions">
-        ${status === 'pending' ? `<button class="mark-sent-btn" data-id="${notif.id}">Marchează trimis</button>` : ''}
-        ${status === 'sent' ? `<button class="mark-read-btn" data-id="${notif.id}">Marchează citit</button>` : ''}
-        <button class="delete-notif-btn" data-id="${notif.id}">Șterge</button>
+        ${!isRead ? `<button class="mark-read-btn" data-id="${escapeHtml(notif.id)}">✓ Marchează citit</button>` : ''}
+        <button class="delete-notif-btn" data-id="${escapeHtml(notif.id)}">🗑 Șterge</button>
       </div>
     `;
     notificationsList.appendChild(item);
@@ -395,67 +440,18 @@ const renderNotifications = (notifications) => {
 };
 
 // Încarcă toate notificările.
-const loadNotifications = async () => {
+const loadNotifications = async (silent = false) => {
   try {
-    clearMessage(notificationMessageBox);
+    if (!silent) {
+      clearMessage(notificationMessageBox);
+    }
     const response = await fetchJson(`${API_BASE_URL}/notifications`);
     renderNotifications(response.data);
   } catch (error) {
-    showMessage(notificationMessageBox, error.message, 'error');
-  }
-};
-
-// Filtrează notificările după User ID (GET /api/notifications/user/:id).
-const filterNotificationsByUser = async () => {
-  const userId = document.getElementById('filterNotifUserId').value;
-
-  if (!userId) {
-    showMessage(notificationMessageBox, 'Introduceți un User ID pentru filtrare.', 'error');
-    return;
-  }
-
-  try {
-    clearMessage(notificationMessageBox);
-    const response = await fetchJson(`${API_BASE_URL}/notifications/user/${userId}`);
-    renderNotifications(response.data);
-  } catch (error) {
-    showMessage(notificationMessageBox, error.message, 'error');
-  }
-};
-
-// Creează manual o notificare din formular (POST /api/notifications).
-const createNotification = async (e) => {
-  e.preventDefault();
-
-  const reminderId = document.getElementById('notifReminderId').value;
-  const userId = document.getElementById('notifUserId').value;
-  const message = document.getElementById('notifMessage').value;
-
-  try {
-    clearMessage(notificationMessageBox);
-    await fetchJson(`${API_BASE_URL}/notifications`, {
-      method: 'POST',
-      body: JSON.stringify({ reminderId, userId, message })
-    });
-    showMessage(notificationMessageBox, 'Notificare creată cu succes.');
-    notificationForm.reset();
-    await loadNotifications();
-  } catch (error) {
-    showMessage(notificationMessageBox, error.message, 'error');
-  }
-};
-
-// Marchează o notificare ca trimisă (PUT /api/notifications/:id/sent).
-const markNotificationAsSent = async (id) => {
-  try {
-    clearMessage(notificationMessageBox);
-    await fetchJson(`${API_BASE_URL}/notifications/${id}/sent`, {
-      method: 'PUT'
-    });
-    showMessage(notificationMessageBox, 'Notificare marcată ca trimisă.');
-    await loadNotifications();
-  } catch (error) {
-    showMessage(notificationMessageBox, error.message, 'error');
+    // În modul silențios (auto-refresh) nu deranjăm userul cu erori temporare.
+    if (!silent) {
+      showMessage(notificationMessageBox, error.message, 'error');
+    }
   }
 };
 
@@ -466,7 +462,6 @@ const markNotificationAsRead = async (id) => {
     await fetchJson(`${API_BASE_URL}/notifications/${id}/read`, {
       method: 'PUT'
     });
-    showMessage(notificationMessageBox, 'Notificare marcată ca citită.');
     await loadNotifications();
   } catch (error) {
     showMessage(notificationMessageBox, error.message, 'error');
@@ -489,20 +484,43 @@ const deleteNotification = async (id) => {
 
 // --- Conectarea formularelor și butoanelor la funcțiile de mai sus (event listeners) ---
 petForm.addEventListener('submit', createPet);
-loadPetsBtn.addEventListener('click', loadPets);
-filterPetsByUserBtn.addEventListener('click', filterPetsByUser);
-
-userForm.addEventListener('submit', createUser);
-loadUsersBtn.addEventListener('click', loadUsers);
 
 reminderForm.addEventListener('submit', createReminder);
-loadRemindersBtn.addEventListener('click', loadReminders);
-loadActiveRemindersBtn.addEventListener('click', loadActiveReminders);
-filterByPetBtn.addEventListener('click', filterRemindersByPet);
 
-notificationForm.addEventListener('submit', createNotification);
-loadNotificationsBtn.addEventListener('click', loadNotifications);
-filterNotifByUserBtn.addEventListener('click', filterNotificationsByUser);
+// Bara de filtre a listei de remindere (segmente Toate / Active + dropdown animal).
+const reminderSegments = document.querySelectorAll('.seg-bar .seg');
+const filterPetSelect = document.getElementById('filterPetId');
+
+const setActiveSegment = (button) => {
+  reminderSegments.forEach((b) => b.classList.toggle('active', b === button));
+};
+
+reminderSegments.forEach((button) => {
+  button.addEventListener('click', () => {
+    setActiveSegment(button);
+    if (filterPetSelect) {
+      filterPetSelect.value = '';
+    }
+    if (button.dataset.filter === 'active') {
+      loadActiveReminders();
+    } else {
+      loadReminders();
+    }
+  });
+});
+
+if (filterPetSelect) {
+  filterPetSelect.addEventListener('change', () => {
+    // Selectarea unui animal anulează evidențierea segmentelor Toate/Active.
+    if (filterPetSelect.value) {
+      reminderSegments.forEach((b) => b.classList.remove('active'));
+    } else {
+      const allBtn = document.querySelector('.seg-bar .seg[data-filter="all"]');
+      setActiveSegment(allBtn);
+    }
+    filterRemindersByPet(filterPetSelect.value);
+  });
+}
 
 // Click în lista de animale: detectează butonul de ștergere (event delegation).
 petsList.addEventListener('click', async (event) => {
@@ -542,10 +560,6 @@ notificationsList.addEventListener('click', async (event) => {
     return;
   }
 
-  if (event.target.classList.contains('mark-sent-btn')) {
-    await markNotificationAsSent(notificationId);
-  }
-
   if (event.target.classList.contains('mark-read-btn')) {
     await markNotificationAsRead(notificationId);
   }
@@ -555,7 +569,36 @@ notificationsList.addEventListener('click', async (event) => {
   }
 });
 
-// --- La încărcarea paginii, aducem datele inițiale din toate serviciile ---
-loadUsers();
-loadPets();
-loadReminders();
+// --- Pornirea aplicației ---
+// Datele se încarcă DOAR după autentificare. auth.js apelează PetCareApp.start(user)
+// odată ce userul e logat (la login, înregistrare sau la revenirea cu token valid).
+
+// Auto-refresh notificări: scheduler-ul backend generează notificări pe măsură
+// ce se apropie/vin/trec datele reminderelor. Reîncărcăm lista periodic (silențios)
+// ca alertele să apară singure, fără ca userul să dea refresh manual.
+const NOTIFICATIONS_REFRESH_MS = 30000;
+let notificationsRefreshTimer = null;
+
+const startNotificationsAutoRefresh = () => {
+  if (notificationsRefreshTimer) {
+    return;
+  }
+  notificationsRefreshTimer = setInterval(() => {
+    // Nu interogăm dacă tab-ul e ascuns (economisim cereri inutile).
+    if (document.hidden) {
+      return;
+    }
+    loadNotifications(true);
+  }, NOTIFICATIONS_REFRESH_MS);
+};
+
+window.PetCareApp = {
+  async start() {
+    // Întâi animalele (populează cache-ul de nume), apoi reminderele ca să afișeze
+    // numele animalului în loc de ID-ul tehnic.
+    await loadPets();
+    await loadReminders();
+    loadNotifications();
+    startNotificationsAutoRefresh();
+  }
+};

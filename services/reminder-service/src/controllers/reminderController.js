@@ -1,11 +1,12 @@
 // reminderController.js - stratul HTTP al Reminder Service: primește cererile,
 // apelează logica din reminderService și formatează răspunsul ({ message, data }).
+// userId vine ÎNTOTDEAUNA din token (req.userId), pentru izolarea datelor.
 const reminderService = require("../services/reminderService");
 
-// GET /api/reminders - returnează toate memento-urile.
+// GET /api/reminders - returnează reminderele utilizatorului logat.
 const getAllReminders = async (req, res) => {
   try {
-    const reminders = await reminderService.getAllReminders();
+    const reminders = await reminderService.getAllReminders(req.userId);
 
     return res.json({
       message: "List of reminders",
@@ -24,7 +25,7 @@ const getAllReminders = async (req, res) => {
 // POST /api/reminders - creează un memento (declanșează și crearea notificării).
 const createReminder = async (req, res) => {
   try {
-    const createdReminder = await reminderService.createReminder(req.body);
+    const createdReminder = await reminderService.createReminder(req.body, req.userId);
 
     return res.status(201).json({
       message: "Reminder created successfully",
@@ -40,12 +41,12 @@ const createReminder = async (req, res) => {
   }
 };
 
-// GET /api/reminders/pet/:petId - returnează memento-urile unui animal.
+// GET /api/reminders/pet/:petId - returnează memento-urile unui animal al utilizatorului.
 const getRemindersByPetId = async (req, res) => {
   try {
     const { petId } = req.params;
 
-    const reminders = await reminderService.getRemindersByPetId(petId);
+    const reminders = await reminderService.getRemindersByPetId(petId, req.userId);
 
     return res.json({
       message: `Reminders for pet ${petId}`,
@@ -61,10 +62,10 @@ const getRemindersByPetId = async (req, res) => {
   }
 };
 
-// GET /api/reminders/active - returnează doar memento-urile active.
+// GET /api/reminders/active - returnează memento-urile active ale utilizatorului.
 const getActiveReminders = async (req, res) => {
   try {
-    const reminders = await reminderService.getActiveReminders();
+    const reminders = await reminderService.getActiveReminders(req.userId);
 
     return res.json({
       message: "Active reminders",
@@ -80,12 +81,12 @@ const getActiveReminders = async (req, res) => {
   }
 };
 
-// PUT /api/reminders/:id/done - marchează un memento ca realizat.
+// PUT /api/reminders/:id/done - marchează un memento al utilizatorului ca realizat.
 const markReminderAsDone = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const updatedReminder = await reminderService.markReminderAsDone(id);
+    const updatedReminder = await reminderService.markReminderAsDone(id, req.userId);
 
     return res.json({
       message: "Reminder marked as done",
@@ -101,12 +102,12 @@ const markReminderAsDone = async (req, res) => {
   }
 };
 
-// DELETE /api/reminders/:id - șterge un memento.
+// DELETE /api/reminders/:id - șterge un memento al utilizatorului.
 const deleteReminder = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deletedReminder = await reminderService.deleteReminder(id);
+    const deletedReminder = await reminderService.deleteReminder(id, req.userId);
 
     return res.json({
       message: "Reminder deleted successfully",

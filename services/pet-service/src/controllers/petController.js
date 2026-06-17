@@ -1,11 +1,13 @@
 // petController.js - stratul HTTP al Pet Service: primește cererile, apelează
 // logica din petService și formatează răspunsul ({ message, data }).
+// userId vine ÎNTOTDEAUNA din token (req.userId), niciodată din body - astfel un
+// utilizator nu poate crea/citi animale pe contul altcuiva.
 const petService = require('../services/petService');
 
-// POST /api/pets - creează un animal nou (201 la succes, 400 dacă datele sunt invalide).
+// POST /api/pets - creează un animal nou pentru utilizatorul logat.
 const createPet = async (req, res) => {
   try {
-    const pet = await petService.createPet(req.body);
+    const pet = await petService.createPet(req.body, req.userId);
     return res.status(201).json({ message: 'Pet created successfully', data: pet });
   } catch (error) {
     console.error('POST /api/pets error:', error);
@@ -13,10 +15,10 @@ const createPet = async (req, res) => {
   }
 };
 
-// GET /api/pets - returnează lista tuturor animalelor.
+// GET /api/pets - returnează DOAR animalele utilizatorului logat.
 const getAllPets = async (req, res) => {
   try {
-    const pets = await petService.getAllPets();
+    const pets = await petService.getPetsByUserId(req.userId);
     return res.json({ message: 'List of pets', data: pets });
   } catch (error) {
     console.error('GET /api/pets error:', error);
@@ -24,11 +26,12 @@ const getAllPets = async (req, res) => {
   }
 };
 
-// GET /api/pets/:id - returnează un animal după id (404 dacă nu există).
+// GET /api/pets/:id - returnează un animal după id.
+// Un utilizator vede doar animalele lui; un serviciu intern (req.isInternal) le poate citi pe toate.
 const getPetById = async (req, res) => {
   try {
     const { id } = req.params;
-    const pet = await petService.getPetById(id);
+    const pet = await petService.getPetById(id, req.userId, req.isInternal);
     return res.json({ message: 'Pet found', data: pet });
   } catch (error) {
     console.error('GET /api/pets/:id error:', error);
@@ -36,23 +39,11 @@ const getPetById = async (req, res) => {
   }
 };
 
-// GET /api/pets/user/:userId - returnează toate animalele unui utilizator.
-const getPetsByUserId = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const pets = await petService.getPetsByUserId(userId);
-    return res.json({ message: `Pets for user ${userId}`, data: pets });
-  } catch (error) {
-    console.error('GET /api/pets/user/:userId error:', error);
-    return res.status(500).json({ message: 'Failed to get pets by userId', error: error.message });
-  }
-};
-
-// DELETE /api/pets/:id - șterge un animal după id.
+// DELETE /api/pets/:id - șterge un animal al utilizatorului logat.
 const deletePet = async (req, res) => {
   try {
     const { id } = req.params;
-    const pet = await petService.deletePet(id);
+    const pet = await petService.deletePet(id, req.userId);
     return res.json({ message: 'Pet deleted successfully', data: pet });
   } catch (error) {
     console.error('DELETE /api/pets/:id error:', error);
@@ -64,6 +55,5 @@ module.exports = {
   createPet,
   getAllPets,
   getPetById,
-  getPetsByUserId,
   deletePet
 };

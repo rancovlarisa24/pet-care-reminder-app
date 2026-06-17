@@ -12,6 +12,8 @@
       PGUSER: petcare
       PGPASSWORD: petcare
       PGDATABASE: users_db
+      JWT_SECRET: petcare-super-secret-dev-key-change-in-prod
+      JWT_EXPIRES_IN: 7d
     depends_on:
       postgres-users:
         condition: service_healthy
@@ -57,6 +59,9 @@
       MYSQL_DATABASE: reminders_db
       PET_SERVICE_URL: http://pet-service:3002
       NOTIFICATION_SERVICE_URL: http://notification-service:3004
+      JWT_SECRET: petcare-super-secret-dev-key-change-in-prod
+      INTERNAL_API_KEY: petcare-internal-service-key-dev
+      SCHEDULER_INTERVAL_MS: 30000
     depends_on:
       mysql-reminders:
         condition: service_healthy
@@ -99,6 +104,8 @@
     environment:
       PORT: 3002
       MONGO_URI: mongodb://mongo-pet:27017/pet_service
+      JWT_SECRET: petcare-super-secret-dev-key-change-in-prod
+      INTERNAL_API_KEY: petcare-internal-service-key-dev
     depends_on:
       mongo-pet:
         condition: service_healthy
@@ -132,6 +139,8 @@
     environment:
       PORT: 3004
       SQLITE_FILE: /data/notifications.db
+      JWT_SECRET: petcare-super-secret-dev-key-change-in-prod
+      INTERNAL_API_KEY: petcare-internal-service-key-dev
     volumes:
       - notification_data:/data
     healthcheck:

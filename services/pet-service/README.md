@@ -14,12 +14,16 @@ Microserviciul `pet-service` gestionează animalele de companie folosind MongoDB
 
 ## Variabile de mediu
 
-Copiază `.env.example` în `.env` și completează valoarea `MONGO_URI`:
+Copiază `.env.example` în `.env` și completează valorile:
 
 ```env
 PORT=3002
 MONGO_URI=mongodb://localhost:27017/pet_service
+JWT_SECRET=același-secret-ca-user-service
+INTERNAL_API_KEY=cheia-internă-comună
 ```
+
+`JWT_SECRET` validează token-ul utilizatorului, iar `INTERNAL_API_KEY` permite apelurile interne (ex. Reminder Service care verifică proprietarul unui animal).
 
 ## Rulare locală
 
@@ -32,10 +36,11 @@ npm run start:pet
 
 ## Endpoints
 
+Toate rutele necesită `Authorization: Bearer <token>` (owner = userul logat). `userId` este preluat din token.
+
 - `POST /api/pets`
 - `GET /api/pets`
-- `GET /api/pets/{id}`
-- `GET /api/pets/user/{userId}`
+- `GET /api/pets/{id}` (owner sau serviciu intern prin `X-Internal-Key`)
 - `DELETE /api/pets/{id}`
 
 ## Docker

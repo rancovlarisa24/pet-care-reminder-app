@@ -7,17 +7,27 @@ const notificationRepository = {
   // Inserează o notificare nouă (status 'pending') și returnează rândul creat.
   // Normalizăm tipurile: user_id întreg, reminder_id text curat (evită valori de
   // tip "3.0" la legarea numerelor JS în coloane TEXT).
-  create: ({ userId, reminderId, channel, message }) => {
+  create: ({ userId, reminderId, channel, message, type }) => {
     const id = uuidv4();
     const now = new Date().toISOString();
     const userIdInt = Number.parseInt(userId, 10);
     const reminderIdStr = String(reminderId);
     const stmt = db.prepare(`
-      INSERT INTO notifications (id, user_id, reminder_id, channel, message, status, created_at, sent_at, read_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO notifications (id, user_id, reminder_id, channel, message, type, status, created_at, sent_at, read_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    stmt.run(id, userIdInt, reminderIdStr, channel || 'in-app', message, 'pending', now, null, null);
+    stmt.run(id, userIdInt, reminderIdStr, channel || 'in-app', message, type || 'created', 'pending', now, null, null);
     return notificationRepository.findById(id);
+  },
+
+  // Verifică dacă există deja o notificare de un anumit tip pentru un memento.
+  // Folosit pentru a evita duplicatele generate de scheduler (o singură notificare
+  // per (reminder_id, type): upcoming/due/overdue).
+  existsByReminderAndType: (reminderId, type) => {
+    const stmt = db.prepare(
+      'SELECT 1 FROM notifications WHERE reminder_id = ? AND type = ? LIMIT 1'
+    );
+    return stmt.get(String(reminderId), type) !== undefined;
   },
 
   // Caută o notificare după id.

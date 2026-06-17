@@ -2,31 +2,17 @@
 // (montate la /api/notifications).
 const express = require('express');
 const notificationController = require('../controllers');
+const { requireAuth, requireInternal } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Create notification
-router.post('/', notificationController.createNotification);
+// Creare notificare - DOAR intern (apel din Reminder Service cu X-Internal-Key).
+router.post('/', requireInternal, notificationController.createNotification);
 
-// Get all notifications
-router.get('/', notificationController.getAllNotifications);
-
-// Get notification by id
-router.get('/:id', notificationController.getNotification);
-
-// Get notifications by user id
-router.get('/user/:userId', notificationController.getNotificationsByUserId);
-
-// Get notifications by reminder id
-router.get('/reminder/:reminderId', notificationController.getNotificationsByReminderId);
-
-// Mark notification as sent
-router.put('/:id/sent', notificationController.markNotificationAsSent);
-
-// Mark notification as read
-router.put('/:id/read', notificationController.markNotificationAsRead);
-
-// Delete notification
-router.delete('/:id', notificationController.deleteNotification);
+// Toate rutele de mai jos sunt pentru utilizatorul logat (vede DOAR notificările lui).
+router.get('/', requireAuth, notificationController.getAllNotifications);
+router.put('/:id/sent', requireAuth, notificationController.markNotificationAsSent);
+router.put('/:id/read', requireAuth, notificationController.markNotificationAsRead);
+router.delete('/:id', requireAuth, notificationController.deleteNotification);
 
 module.exports = router;

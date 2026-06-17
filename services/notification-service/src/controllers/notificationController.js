@@ -1,13 +1,20 @@
 // notificationController.js - stratul HTTP al Notification Service: primește
 // cererile, apelează logica din notificationService și formatează răspunsul.
+// Citirea/marcarea/ștergerea folosesc req.userId (din token) pentru izolarea datelor.
 const notificationService = require('../services');
 
 const notificationController = {
-  // POST /api/notifications - creează o notificare (apelat de Reminder Service).
+  // POST /api/notifications - creează o notificare (apel intern din Reminder Service).
   createNotification: (req, res) => {
     try {
-      const { reminderId, userId, message, channel } = req.body;
-      const notification = notificationService.createNotification(reminderId, userId, message, channel);
+      const { reminderId, userId, message, channel, type, dedupe } = req.body;
+      const notification = notificationService.createNotification(
+        reminderId, userId, message, channel, type, dedupe === true
+      );
+      // dedupe activ + notificare deja existentă => nu cream duplicat (200, fără date noi).
+      if (!notification) {
+        return res.status(200).json({ message: 'Notification already exists', data: null });
+      }
       res.status(201).json({
         message: 'Notification created successfully',
         data: notification,
@@ -17,24 +24,10 @@ const notificationController = {
     }
   },
 
-  // GET /api/notifications/:id - returnează o notificare după id (404 dacă nu există).
-  getNotification: (req, res) => {
-    try {
-      const { id } = req.params;
-      const notification = notificationService.getNotification(id);
-      res.status(200).json({
-        message: 'Notification retrieved successfully',
-        data: notification,
-      });
-    } catch (error) {
-      res.status(404).json({ error: error.message });
-    }
-  },
-
-  // GET /api/notifications - returnează toate notificările.
+  // GET /api/notifications - returnează DOAR notificările utilizatorului logat.
   getAllNotifications: (req, res) => {
     try {
-      const notifications = notificationService.getAllNotifications();
+      const notifications = notificationService.getNotificationsByUserId(req.userId);
       res.status(200).json({
         message: 'List of notifications',
         data: notifications,
@@ -44,39 +37,11 @@ const notificationController = {
     }
   },
 
-  // GET /api/notifications/user/:userId - notificările unui utilizator.
-  getNotificationsByUserId: (req, res) => {
-    try {
-      const { userId } = req.params;
-      const notifications = notificationService.getNotificationsByUserId(userId);
-      res.status(200).json({
-        message: 'List of notifications for user',
-        data: notifications,
-      });
-    } catch (error) {
-      res.status(400).json({ error: error.message });
-    }
-  },
-
-  // GET /api/notifications/reminder/:reminderId - notificările unui memento.
-  getNotificationsByReminderId: (req, res) => {
-    try {
-      const { reminderId } = req.params;
-      const notifications = notificationService.getNotificationsByReminderId(reminderId);
-      res.status(200).json({
-        message: 'List of notifications for reminder',
-        data: notifications,
-      });
-    } catch (error) {
-      res.status(400).json({ error: error.message });
-    }
-  },
-
-  // PUT /api/notifications/:id/sent - marchează notificarea ca trimisă.
+  // PUT /api/notifications/:id/sent - marchează notificarea utilizatorului ca trimisă.
   markNotificationAsSent: (req, res) => {
     try {
       const { id } = req.params;
-      const notification = notificationService.markNotificationAsSent(id);
+      const notification = notificationService.markNotificationAsSent(id, req.userId);
       res.status(200).json({
         message: 'Notification marked as sent',
         data: notification,
@@ -86,11 +51,11 @@ const notificationController = {
     }
   },
 
-  // PUT /api/notifications/:id/read - marchează notificarea ca citită.
+  // PUT /api/notifications/:id/read - marchează notificarea utilizatorului ca citită.
   markNotificationAsRead: (req, res) => {
     try {
       const { id } = req.params;
-      const notification = notificationService.markNotificationAsRead(id);
+      const notification = notificationService.markNotificationAsRead(id, req.userId);
       res.status(200).json({
         message: 'Notification marked as read',
         data: notification,
@@ -100,11 +65,11 @@ const notificationController = {
     }
   },
 
-  // DELETE /api/notifications/:id - șterge o notificare.
+  // DELETE /api/notifications/:id - șterge o notificare a utilizatorului.
   deleteNotification: (req, res) => {
     try {
       const { id } = req.params;
-      notificationService.deleteNotification(id);
+      notificationService.deleteNotification(id, req.userId);
       res.status(200).json({
         message: 'Notification deleted successfully',
       });

@@ -4,153 +4,269 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pet Care Reminder App</title>
-  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/style.css?v=13" />
 </head>
 <body>
-  <header class="app-header">
-    <h1>Pet Care Reminder App</h1>
-    <p>Gestionarea reminderelor și animalelor de companie</p>
-  </header>
+  <!-- ============ ECRAN DE AUTENTIFICARE (login / inregistrare) ============ -->
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-card">
 
-  <main class="container">
-    <section class="card">
-      <h2>Creare utilizator</h2>
-      <form id="userForm">
-        <label for="userName">Nume</label>
-        <input type="text" id="userName" placeholder="ex: Larisa" required />
-
-        <label for="userEmail">Email</label>
-        <input type="email" id="userEmail" placeholder="ex: larisa@email.com" required />
-
-        <button type="submit">Adaugă utilizator</button>
-      </form>
-    </section>
-
-    <section class="card">
-      <h2>Lista utilizatorilor</h2>
-      <div class="actions">
-        <button id="loadUsersBtn">Afișează toți utilizatorii</button>
+      <!-- Panou stanga: prezentare -->
+      <div class="auth-hero">
+        <div class="auth-brand">
+          <span class="brand-logo">🐾</span>
+          <div class="brand-text">
+            <strong>Pet Care</strong>
+            <small>Reminder App</small>
+          </div>
+        </div>
+        <h1 class="auth-hero-title">Ai grijă de animalele tale, fără să uiți nimic.</h1>
+        <p class="auth-hero-sub">Programează vaccinuri, hrană și vizite la veterinar. Primești remindere și notificări pentru fiecare animal al tău.</p>
+        <ul class="auth-hero-list">
+          <li>🐶 Toate animalele tale într-un singur loc</li>
+          <li>⏰ Remindere pentru fiecare activitate</li>
+          <li>🔔 Notificări care nu te lasă să uiți</li>
+        </ul>
       </div>
-      <div id="userMessageBox"></div>
-      <div id="usersList" class="users-list"></div>
-    </section>
 
-    <section class="card">
-      <h2>Creare animal</h2>
-      <form id="petForm">
-        <label for="petUserId">User ID</label>
-        <input type="number" id="petUserId" placeholder="ex: 1" required />
+      <!-- Panou dreapta: formulare -->
+      <div class="auth-panel">
 
-        <label for="petName">Nume</label>
-        <input type="text" id="petName" placeholder="ex: Luna" required />
+        <!-- Brand compact, vizibil doar pe ecrane mici (cand hero-ul e ascuns) -->
+        <div class="auth-brand auth-brand-mobile">
+          <span class="brand-logo">🐾</span>
+          <div class="brand-text">
+            <strong>Pet Care</strong>
+            <small>Reminder App</small>
+          </div>
+        </div>
 
-        <label for="petType">Tip</label>
-        <input type="text" id="petType" placeholder="ex: dog" required />
+        <!-- Formular de autentificare -->
+        <form id="loginForm" class="auth-form">
+          <div class="auth-head">
+            <h2>Bine ai revenit</h2>
+            <p>Autentifică-te ca să-ți vezi animalele și reminderele.</p>
+          </div>
 
-        <label for="petBreed">Rasă</label>
-        <input type="text" id="petBreed" placeholder="ex: Labrador" required />
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" placeholder="ex: larisa@email.com" required autocomplete="email" />
 
-        <label for="petAge">Vârstă</label>
-        <input type="number" id="petAge" placeholder="ex: 3" required />
+          <label for="loginPassword">Parolă</label>
+          <input type="password" id="loginPassword" placeholder="Parola ta" required autocomplete="current-password" />
 
-        <label for="petNotes">Note</label>
-        <textarea id="petNotes" placeholder="Ex: vaccinată"></textarea>
+          <button type="submit">Intră în cont</button>
 
-        <button type="submit">Adaugă animal</button>
-      </form>
-    </section>
+          <p class="auth-switch">
+            <span class="auth-switch-text">Nu ai cont încă?</span>
+            <button type="button" class="auth-link" data-auth-tab="register">✨ Creează un cont nou</button>
+          </p>
+        </form>
 
-    <section class="card">
-      <h2>Lista animalelor</h2>
-      <div class="actions">
-        <button id="loadPetsBtn">Afișează toate animalele</button>
+        <!-- Formular de inregistrare (ascuns initial) -->
+        <form id="registerForm" class="auth-form" hidden>
+          <div class="auth-head">
+            <h2>Creează un cont</h2>
+            <p>Înregistrează-te ca să începi să-ți gestionezi animalele.</p>
+          </div>
+
+          <label for="registerName">Nume</label>
+          <input type="text" id="registerName" placeholder="ex: Larisa" required autocomplete="name" />
+
+          <label for="registerEmail">Email</label>
+          <input type="email" id="registerEmail" placeholder="ex: larisa@email.com" required autocomplete="email" />
+
+          <label for="registerPassword">Parolă (minim 6 caractere)</label>
+          <input type="password" id="registerPassword" placeholder="Alege o parolă" required minlength="6" autocomplete="new-password" />
+
+          <button type="submit">Creează cont</button>
+
+          <p class="auth-switch">
+            <span class="auth-switch-text">Ai deja cont?</span>
+            <button type="button" class="auth-link" data-auth-tab="login">← Autentifică-te</button>
+          </p>
+        </form>
+
+        <div id="authMessageBox"></div>
       </div>
-      <div class="filter">
-        <input type="number" id="filterPetUserId" placeholder="Filtrare după User ID" />
-        <button id="filterPetsByUserBtn">Filtrează</button>
+    </div>
+  </div>
+
+  <div class="app" id="appRoot">
+    <!-- ============ SIDEBAR (navigare aplicatie) ============ -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-logo">🐾</span>
+        <div class="brand-text">
+          <strong>Pet Care</strong>
+          <small>Reminder App</small>
+        </div>
       </div>
-      <div id="petMessageBox"></div>
-      <div id="petsList" class="pets-list"></div>
-    </section>
 
-    <section class="card">
-      <h2>Creare reminder</h2>
-      <form id="reminderForm">
-        <label for="petId">Pet ID</label>
-        <input type="text" id="petId" placeholder="ex: 6a318..." required />
+      <nav class="nav" id="mainNav">
+        <button type="button" class="nav-link active" data-view="view-account">
+          <span class="nav-ico">👤</span> Contul meu
+        </button>
+        <button type="button" class="nav-link" data-view="view-pets">
+          <span class="nav-ico">🐶</span> Animalele mele
+        </button>
+        <button type="button" class="nav-link" data-view="view-reminders">
+          <span class="nav-ico">⏰</span> Remindere
+        </button>
+        <button type="button" class="nav-link" data-view="view-notifications">
+          <span class="nav-ico">🔔</span> Notificări
+        </button>
+      </nav>
 
-        <label for="title">Titlu</label>
-        <input type="text" id="title" placeholder="ex: Vaccin anual" required />
-
-        <label for="description">Descriere</label>
-        <textarea id="description" placeholder="Detalii reminder"></textarea>
-
-        <label for="category">Categorie</label>
-        <select id="category">
-          <option value="food">Hrană</option>
-          <option value="bath">Baie</option>
-          <option value="walk">Plimbare</option>
-          <option value="vaccine">Vaccin</option>
-          <option value="medicine">Medicamente</option>
-          <option value="vet">Vizită veterinar</option>
-          <option value="other">Altceva</option>
-        </select>
-
-        <label for="reminderDate">Data reminderului</label>
-        <input type="date" id="reminderDate" required />
-
-        <button type="submit">Creează reminder</button>
-      </form>
-    </section>
-
-    <section class="card">
-      <h2>Acțiuni reminder</h2>
-      <div class="actions">
-        <button id="loadRemindersBtn">Afișează toate reminderele</button>
-        <button id="loadActiveRemindersBtn">Afișează remindere active</button>
+      <div class="sidebar-foot">
+        <div class="sidebar-user">
+          <span class="avatar avatar-user" id="sidebarUserAvatar">?</span>
+          <div class="sidebar-user-text">
+            <strong id="sidebarUserName">—</strong>
+            <small id="sidebarUserEmail"></small>
+          </div>
+        </div>
+        <button type="button" id="logoutBtn" class="logout-btn">Deconectare</button>
       </div>
-      <div class="filter">
-        <input type="text" id="filterPetId" placeholder="Filtrare după Pet ID" />
-        <button id="filterByPetBtn">Filtrează</button>
-      </div>
-    </section>
+    </aside>
 
-    <section class="card">
-      <h2>Lista reminderelor</h2>
-      <div id="messageBox"></div>
-      <div id="remindersList" class="reminders-list"></div>
-    </section>
 
-    <section class="card">
-      <h2>Creare notificare</h2>
-      <form id="notificationForm">
-        <label for="notifReminderId">Reminder ID</label>
-        <input type="text" id="notifReminderId" placeholder="ex: reminder-001" required />
+    <!-- ============ ZONA PRINCIPALA ============ -->
+    <div class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="viewTitle">Contul meu</h1>
+          <p id="viewSubtitle" class="topbar-sub">Datele contului tău</p>
+        </div>
+        <div class="topbar-badge" id="stepBadge" hidden></div>
+      </header>
 
-        <label for="notifUserId">User ID</label>
-        <input type="text" id="notifUserId" placeholder="ex: user-001" required />
+      <main class="content">
+        <!-- ============ CONTUL MEU ============ -->
+        <section class="view active" id="view-account">
+          <section class="card account-card">
+            <h2>👤 Profilul meu</h2>
+            <div class="profile">
+              <span class="avatar avatar-user profile-avatar" id="accountAvatar">?</span>
+              <div class="profile-info">
+                <h3 id="accountName">—</h3>
+                <p class="profile-email" id="accountEmail"></p>
+                <p class="profile-since">Membru din <span id="accountSince">—</span></p>
+              </div>
+            </div>
 
-        <label for="notifMessage">Mesaj</label>
-        <textarea id="notifMessage" placeholder="Mesajul notificării" required></textarea>
+            <hr class="account-sep" />
 
-        <button type="submit">Creează notificare</button>
-      </form>
-    </section>
+            <h3 class="account-subtitle">🐾 Cum funcționează</h3>
+            <ol class="howto">
+              <li>Adaugă <strong>animalele tale</strong> în secțiunea „Animalele mele".</li>
+              <li>Creează <strong>remindere</strong> pentru fiecare animal (vaccin, hrană, plimbare…) și alege data.</li>
+              <li>Pe măsură ce data se apropie, primești automat <strong>notificări</strong>: ⏳ când se apropie, 📅 în ziua respectivă și ⚠️ dacă a rămas în urmă.</li>
+              <li>În <strong>Notificări</strong> le poți marca drept citite sau le poți șterge. Lista se actualizează singură.</li>
+            </ol>
+          </section>
+        </section>
 
-    <section class="card">
-      <h2>Notificări</h2>
-      <div class="actions">
-        <button id="loadNotificationsBtn">Afișează toate notificările</button>
-      </div>
-      <div class="filter">
-        <input type="text" id="filterNotifUserId" placeholder="Filtrare după User ID" />
-        <button id="filterNotifByUserBtn">Filtrează</button>
-      </div>
-      <div id="notificationMessageBox"></div>
-      <div id="notificationsList" class="notifications-list"></div>
-    </section>
-  </main>
+        <!-- ============ ANIMALE ============ -->
+        <section class="view" id="view-pets">
+          <div class="cards-grid">
+            <section class="card">
+              <h2>🐶 Adaugă un animal</h2>
+              <form id="petForm">
+                <label for="petName">Nume</label>
+                <input type="text" id="petName" placeholder="ex: Luna" required />
 
-  <script src="./js/app.js"></script>
+                <label for="petType">Tip</label>
+                <input type="text" id="petType" placeholder="ex: dog" required />
+
+                <label for="petBreed">Rasă</label>
+                <input type="text" id="petBreed" placeholder="ex: Labrador" required />
+
+                <label for="petAge">Vârstă</label>
+                <input type="number" id="petAge" placeholder="ex: 3" required />
+
+                <label for="petNotes">Note</label>
+                <textarea id="petNotes" placeholder="Ex: vaccinată"></textarea>
+
+                <button type="submit">Adaugă animal</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <h2>🐾 Animalele mele</h2>
+              <div id="petMessageBox"></div>
+              <div id="petsList" class="pets-list"></div>
+            </section>
+          </div>
+        </section>
+
+
+        <!-- ============ REMINDERE ============ -->
+        <section class="view" id="view-reminders">
+          <div class="cards-grid">
+            <section class="card">
+              <h2>⏰ Creare reminder</h2>
+              <form id="reminderForm">
+                <label for="petId">Animal</label>
+                <select id="petId" required>
+                  <option value="" disabled selected>Alege un animal…</option>
+                </select>
+
+                <label for="title">Titlu</label>
+                <input type="text" id="title" placeholder="ex: Vaccin anual" required />
+
+                <label for="description">Descriere</label>
+                <textarea id="description" placeholder="Detalii reminder"></textarea>
+
+                <label for="category">Categorie</label>
+                <select id="category">
+                  <option value="food">Hrană</option>
+                  <option value="bath">Baie</option>
+                  <option value="walk">Plimbare</option>
+                  <option value="vaccine">Vaccin</option>
+                  <option value="medicine">Medicamente</option>
+                  <option value="vet">Vizită veterinar</option>
+                  <option value="other">Altceva</option>
+                </select>
+
+                <label for="reminderDate">Data reminderului</label>
+                <input type="date" id="reminderDate" required />
+
+                <button type="submit">Creează reminder</button>
+              </form>
+            </section>
+
+            <section class="card card-wide">
+              <h2>📋 Lista reminderelor</h2>
+              <div class="seg-bar">
+                <button type="button" class="seg active" data-filter="all">Toate</button>
+                <button type="button" class="seg" data-filter="active">Active</button>
+                <select id="filterPetId" class="seg-select" title="Filtrează după animal">
+                  <option value="">Toate animalele</option>
+                </select>
+              </div>
+              <div id="messageBox"></div>
+              <div id="remindersList" class="reminders-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <!-- ============ NOTIFICĂRI ============ -->
+        <section class="view" id="view-notifications">
+          <div class="cards-grid">
+            <section class="card card-wide">
+              <h2>📨 Notificările mele</h2>
+              <p class="card-hint">Notificările apar automat când un reminder se apropie, e astăzi sau a rămas în urmă. Lista se actualizează singură.</p>
+              <div id="notificationMessageBox"></div>
+              <div id="notificationsList" class="notifications-list"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="./js/nav.js?v=13"></script>
+  <script src="./js/auth.js?v=13"></script>
+  <script src="./js/app.js?v=13"></script>
 </body>
 </html>

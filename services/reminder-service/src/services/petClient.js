@@ -1,46 +1,39 @@
 // petClient.js - client REST prin care Reminder Service comunică cu Pet Service.
 // NU accesează direct baza de date a Pet Service, ci doar API-ul lui (principiul
-// microserviciilor: comunicare exclusiv prin REST).
+// microserviciilor: comunicare exclusiv prin REST). Apelurile sunt server-to-server,
+// deci folosesc cheia internă (X-Internal-Key) în loc de un token de utilizator.
 const axios = require("axios");
 
-// Verifică (best-effort) că animalul există înainte de a crea un memento.
-// În mod demo, dacă Pet Service nu răspunde, nu blochează crearea memento-ului.
-const verifyPetExists = async (petId) => {
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || "dev-internal-key";
+
+// Verifică faptul că animalul există ȘI aparține utilizatorului care creează reminderul.
+// Aruncă eroare dacă animalul nu există, nu aparține userului sau Pet Service e indisponibil
+// (fail-closed: nu permitem crearea de remindere pentru animale neverificabile).
+const getOwnedPet = async (petId, userId) => {
   const petServiceUrl = process.env.PET_SERVICE_URL;
 
   if (!petServiceUrl) {
-    console.log("PET_SERVICE_URL is not configured. Skipping pet validation.");
-    return true;
+    throw new Error("PET_SERVICE_URL is not configured");
   }
 
+  let response;
   try {
-    await axios.get(`${petServiceUrl}/api/pets/${petId}`);
-    return true;
+    response = await axios.get(`${petServiceUrl}/api/pets/${petId}`, {
+      headers: { "X-Internal-Key": INTERNAL_API_KEY }
+    });
   } catch (error) {
-    console.log("Pet Service unavailable or pet not found. Continuing in demo mode.");
-    return true;
-  }
-};
-
-// Returnează userId-ul proprietarului animalului, pentru a lega notificarea de utilizator.
-const getPetOwnerId = async (petId) => {
-  const petServiceUrl = process.env.PET_SERVICE_URL;
-
-  if (!petServiceUrl) {
-    return null;
+    throw new Error("pet not found or pet service unavailable");
   }
 
-  try {
-    const response = await axios.get(`${petServiceUrl}/api/pets/${petId}`);
-    const pet = response.data && response.data.data ? response.data.data : response.data;
-    return pet ? pet.userId : null;
-  } catch (error) {
-    console.log("Pet Service unavailable. Could not resolve pet owner.");
-    return null;
+  const pet = response.data && response.data.data ? response.data.data : response.data;
+
+  if (!pet || Number(pet.userId) !== Number(userId)) {
+    throw new Error("pet not found");
   }
+
+  return pet;
 };
 
 module.exports = {
-  verifyPetExists,
-  getPetOwnerId
+  getOwnedPet
 };
